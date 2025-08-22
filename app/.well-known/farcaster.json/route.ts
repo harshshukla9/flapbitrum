@@ -13,7 +13,7 @@ export async function GET() {
       "splashBackgroundColor": "#ffffff",
       "webhookUrl": "https://flapbitrum.vercel.app/api/webhook",
       "subtitle": "Flap your way through Arbitrum",
-      "description": "Flapbitrum is a fun, crypto-native twist on the classic flappy bird game — built on Arbitrum. Play, flap, and dodge the blocks while repping Layer 2. Compete with friends, share scores, and explore the Arbi-verse with every flap.\"",
+      "description": "Flapbitrum is a fun, crypto-native twist on the classic flappy bird game — built on Arbitrum.",
       "primaryCategory": "games"
     },
     "accountAssociation": {
