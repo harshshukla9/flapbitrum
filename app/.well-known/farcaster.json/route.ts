@@ -6,7 +6,7 @@ export async function GET() {
     // TODO: Add your own account association
     frame: {
       "name": "Flapbitrum",
-      "version": "1.1",
+      "version": "1",
       "iconUrl": "https://arb-flappyverse.vercel.app/icon.png",
       "homeUrl": "https://arb-flappyverse.vercel.app",
       "imageUrl": "https://arb-flappyverse.vercel.app/image.png",
