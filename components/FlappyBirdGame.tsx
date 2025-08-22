@@ -665,7 +665,7 @@ const FlappyBirdGame: React.FC = () => {
                            `Can you beat my score? 🚀\n` +
                            `💰 Top 30 players will share the reward pool! 💰\n\n` +
                            `#Flapbitrum #Arbitrum #Gaming\n\n` +
-                           `Play here: https://farcaster.xyz/miniapps/VPD-r40kUKL_/iq-checker`
+                           `Play here: https://farcaster.xyz/miniapps/rcGxScTRGCs8/flapbitrum`
 
             console.log("🔍 Cast text:", castText);
 

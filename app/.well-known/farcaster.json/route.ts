@@ -6,10 +6,10 @@ export async function GET() {
     frame: {
       "name": "Flapbitrum",
       "version": "1",
-      "iconUrl": "https://flapbitrum.vercel.app/icon.png",
+      "iconUrl": "https://flapbitrum.vercel.app/images/icon.png",
       "homeUrl": "https://flapbitrum.vercel.app",
-      "imageUrl": "https://flapbitrum.vercel.app/image.png",
-      "splashImageUrl": "https://flapbitrum.vercel.app/splash.png",
+      "imageUrl": "https://flapbitrum.vercel.app/images/image.png",
+      "splashImageUrl": "https://flapbitrum.vercel.app/images/splash.png",
       "splashBackgroundColor": "#ffffff",
       "webhookUrl": "https://flapbitrum.vercel.app/api/webhook",
       "subtitle": "Flap your way through Arbitrum",
