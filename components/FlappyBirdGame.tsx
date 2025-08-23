@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useRef, useState } from 'react';
 import { useSetScore, useMyGameData } from '../smartcontracthooks';
-import { useAccount } from 'wagmi';
+import { useAccount, useConnect } from 'wagmi';
 import { useFrame } from './farcaster-provider';
 import RewardInfoPopup from './RewardInfoPopup';
 import { APP_URL } from '@/lib/constants';
@@ -567,6 +567,8 @@ const FlappyBirdGame: React.FC = () => {
     const [countdown, setCountdown] = useState<number | null>(null);
     const [showCountdown, setShowCountdown] = useState(false);
     const [showRewardInfo, setShowRewardInfo] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [loadingProgress, setLoadingProgress] = useState(0);
     
     // Debug reward info popup state
     useEffect(() => {
@@ -575,6 +577,7 @@ const FlappyBirdGame: React.FC = () => {
     
     // Smart contract hooks
     const { address, isConnected } = useAccount();
+    const { connect, connectors } = useConnect();
     const { setScore: saveScoreToContract, isPending: isSavingScore, isSuccess: scoreSaved } = useSetScore();
     const { myScore: contractScore, myRank, hasScore, username, fid, pfp } = useMyGameData();
     const [isClient, setIsClient] = useState(false);
@@ -777,37 +780,51 @@ const FlappyBirdGame: React.FC = () => {
                 
                 return () => clearTimeout(timer);
             } else {
-                // Countdown finished, start game
-                console.log("🔍 Countdown finished, showing GO!");
+                // Countdown finished, start loading
+                console.log("🔍 Countdown finished, starting loading...");
                 playGoSound();
                 setShowCountdown(false);
                 setCountdown(null);
-                setGameStarted(true);
-                console.log("🔍 Countdown finished, game starting...");
+                setIsLoading(true);
+                setLoadingProgress(0);
+                
+                // Simulate loading progress
+                const loadingInterval = setInterval(() => {
+                    setLoadingProgress(prev => {
+                        if (prev >= 100) {
+                            clearInterval(loadingInterval);
+                            setIsLoading(false);
+                            setGameStarted(true);
+                            console.log("🔍 Loading finished, game starting...");
+                            return 100;
+                        }
+                        return prev + 10;
+                    });
+                }, 100); // 1 second total loading time
             }
         }
     }, [showCountdown, countdown, playCountdownSound, playGoSound]);
 
-    // Initialize canvas when game starts (after countdown)
+    // Initialize canvas when game starts (after loading)
     useEffect(() => {
-        if (canvasRef.current && gameStarted && level && !showCountdown) {
-            console.log("🔍 Initializing game after countdown...");
+        if (canvasRef.current && gameStarted && level && !showCountdown && !isLoading) {
+            console.log("🔍 Initializing game after loading...");
             
-            // Start the actual game after countdown finishes
+            // Start the actual game after loading finishes
             startGame(canvasRef, setGameStarted, setGameOver, gameOverRef, setScore, setDifficulty, level, canvasDimensions, handleGameOver);
         }
-    }, [gameStarted, level, canvasDimensions, showCountdown]);
+    }, [gameStarted, level, canvasDimensions, showCountdown, isLoading]);
 
     // Trigger countdown when game canvas is ready
     useEffect(() => {
-        console.log("🔍 Countdown trigger effect - Mode:", mode, "Level:", level, "Game Started:", gameStarted, "Show Countdown:", showCountdown, "Canvas:", !!canvasRef.current);
+        console.log("🔍 Countdown trigger effect - Mode:", mode, "Level:", level, "Game Started:", gameStarted, "Show Countdown:", showCountdown, "Is Loading:", isLoading, "Canvas:", !!canvasRef.current);
         
-        if (mode === "single" && level && !gameStarted && !showCountdown && canvasRef.current) {
+        if (mode === "single" && level && !gameStarted && !showCountdown && !isLoading && canvasRef.current) {
             console.log("🔍 Game canvas ready, starting countdown...");
             setShowCountdown(true);
             setCountdown(3);
         }
-    }, [mode, level, gameStarted, showCountdown]);
+    }, [mode, level, gameStarted, showCountdown, isLoading]);
 
     // Mobile fullscreen styling - desktop gets container
     const cardStyle = "w-full min-h-screen md:max-w-sm md:mx-auto md:h-auto";
@@ -831,12 +848,57 @@ const FlappyBirdGame: React.FC = () => {
         )
     );
 
+    // Loading Overlay Component
+    const LoadingOverlay = () => (
+        isLoading && (
+            <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/80 backdrop-blur-sm">
+                <div className="text-center max-w-md mx-auto px-6">
+                    <div className="mb-6">
+                        <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full flex items-center justify-center animate-pulse">
+                            <img src="/images/logo.png" alt="Flapbitrum Logo" className="w-10 h-10 object-contain" />
+                        </div>
+                        <h2 className="text-2xl md:text-3xl font-bold text-white mb-2 drop-shadow-lg">
+                            Loading Game...
+                        </h2>
+                        <p className="text-blue-200 text-sm md:text-base">
+                            Preparing your {level} challenge
+                        </p>
+                    </div>
+                    
+                    {/* Loading Bar */}
+                    <div className="w-full bg-white/20 rounded-full h-3 mb-4 overflow-hidden">
+                        <div 
+                            className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full transition-all duration-300 ease-out relative overflow-hidden"
+                            style={{ width: `${loadingProgress}%` }}
+                        >
+                            {/* Animated shine effect */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"></div>
+                        </div>
+                    </div>
+                    
+                    {/* Loading Text */}
+                    <div className="text-sm text-blue-300">
+                        {loadingProgress < 30 && "🎮 Initializing game engine..."}
+                        {loadingProgress >= 30 && loadingProgress < 60 && "🎯 Setting up difficulty..."}
+                        {loadingProgress >= 60 && loadingProgress < 90 && "🪙 Loading coins and pipes..."}
+                        {loadingProgress >= 90 && "🚀 Almost ready..."}
+                    </div>
+                    
+                    {/* Progress Percentage */}
+                    <div className="mt-3 text-lg font-bold text-white">
+                        {loadingProgress}%
+                    </div>
+                </div>
+            </div>
+        )
+    );
+
     // Wallet Connection Component
     const WalletConnection = () => (
         <div className="fixed top-4 right-4 z-40">
-            {isClient && !isConnected && (
+            { !isConnected && (
                 <button
-                    onClick={() => window.location.href = '/'}
+                    onClick={() => connect({ connector: connectors[0] })}
                     className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-5 py-3 rounded-2xl font-semibold shadow-2xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 border border-white/20 flex items-center space-x-2 backdrop-blur-sm"
                 >
                     <span className="text-lg">🔗</span>
@@ -851,6 +913,7 @@ const FlappyBirdGame: React.FC = () => {
             <>
                 <WalletConnection />
                 <CountdownOverlay />
+                <LoadingOverlay />
                 
 
 
@@ -1051,7 +1114,9 @@ const FlappyBirdGame: React.FC = () => {
 
     if (mode === "multi") {
         return (
-            <div ref={cardRef} className={`${cardStyle} animate-fadein`}>
+            <>
+                <LoadingOverlay />
+                <div ref={cardRef} className={`${cardStyle} animate-fadein`}>
                 {/* Mobile fullscreen multiplayer */}
                 <div className="md:hidden min-h-screen w-full flex flex-col justify-center items-center p-8 bg-gradient-to-br from-purple-900/95 via-pink-800/95 to-purple-700/95 text-white relative overflow-hidden">
                     {/* Animated background elements */}
@@ -1193,6 +1258,7 @@ const FlappyBirdGame: React.FC = () => {
                     </div>
                 </div>
             </div>
+        </>
         );
     }
 
@@ -1201,6 +1267,7 @@ const FlappyBirdGame: React.FC = () => {
             <>
                 <WalletConnection />
                 <CountdownOverlay />
+                <LoadingOverlay />
                 <div ref={cardRef} className={`${cardStyle} animate-fadein`}>
                 {/* Mobile fullscreen difficulty selection */}
                 <div className="md:hidden min-h-screen w-[390px] flex flex-col justify-center items-center p-8 bg-gradient-to-br from-blue-900/95 via-indigo-800/95 to-blue-700/95 text-white relative overflow-hidden">
@@ -1472,6 +1539,7 @@ const FlappyBirdGame: React.FC = () => {
         return (
             <>
                 <WalletConnection />
+                <LoadingOverlay />
                 <div ref={cardRef} className={`${cardStyle} animate-fadein`}>
                 {/* Mobile fullscreen game over */}
                 <div className="md:hidden h-full flex flex-col bg-gradient-to-br from-blue-600/90 to-indigo-600/90 text-white relative">
@@ -1545,7 +1613,7 @@ const FlappyBirdGame: React.FC = () => {
                                     <h4 className="text-lg font-semibold mb-2 text-blue-200">🔗 Connect Wallet</h4>
                                     <p className="text-sm text-blue-300 mb-3">Connect your wallet to save scores to the blockchain!</p>
                                     <button
-                                        onClick={() => window.location.href = '/'}
+                                        onClick={() => connect({ connector: connectors[0] })}
                                         className="w-full py-2 px-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg font-semibold shadow active:scale-95 transition-all duration-200"
                                     >
                                         🔗 Connect Wallet
@@ -1644,7 +1712,7 @@ const FlappyBirdGame: React.FC = () => {
                                 <h4 className="text-lg font-semibold mb-2 text-gray-700">🔗 Connect Wallet</h4>
                                 <p className="text-sm text-gray-600 mb-3">Connect your wallet to save scores to the blockchain!</p>
                                 <button
-                                    onClick={() => window.location.href = '/'}
+                                      onClick={() => connect({ connector: connectors[0] })}
                                     className="w-full py-2 px-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg font-semibold shadow active:scale-95 transition-all duration-200"
                                 >
                                     🔗 Connect Wallet
@@ -1692,22 +1760,8 @@ const FlappyBirdGame: React.FC = () => {
     return (
         <>
                 <WalletConnection />
-            {/* Countdown Overlay - Outside main container */}
-            {showCountdown && (
-                <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/80 backdrop-blur-sm">
-                    <div className="text-center">
-                        {countdown && countdown > 0 ? (
-                            <div className="text-8xl md:text-9xl font-bold text-white animate-pulse drop-shadow-2xl">
-                                {countdown}
-                            </div>
-                        ) : (
-                            <div className="text-6xl md:text-7xl font-bold text-green-400 animate-bounce drop-shadow-2xl">
-                                GO!
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
+                <CountdownOverlay />
+                <LoadingOverlay />
             
             <div className="fixed inset-0 bg-black md:relative md:bg-transparent md:inset-auto">
                 <canvas 
