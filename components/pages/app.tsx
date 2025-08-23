@@ -142,14 +142,7 @@ export default function Home() {
         
 
         {/* Gas fee indicator */}
-        <div className="absolute top-4 right-4 z-10">
-          <div className="bg-black/30 backdrop-blur-sm rounded-full px-3 py-1 border border-white/20 shadow-xl">
-            <div className="flex items-center space-x-1">
-              <span className="text-xs text-white font-medium">⚡</span>
-              <span className="text-xs text-green-300 font-medium">Low Gas</span>
-            </div>
-          </div>
-        </div>
+       
 
         {/* Gaming stats bar */}
       
