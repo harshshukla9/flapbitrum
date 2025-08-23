@@ -10,6 +10,14 @@ export interface UserScore {
   pfp?: string
 }
 
+export interface UserProfile {
+  user: string
+  score: bigint
+  username?: string
+  fid?: bigint
+  pfp?: string
+}
+
 export interface LeaderboardEntry {
   user: string
   score: number
@@ -33,7 +41,11 @@ export const useGetMyProfile = () => {
     address: contractConfig.contractAddress as `0x${string}`,
     abi: contractConfig.abi,
     functionName: 'getMyProfile',
-  })
+  }) as {
+    data: UserProfile | undefined
+    isLoading: boolean
+    error: any
+  }
 }
 
 export const useGetMyScore = () => {
@@ -171,13 +183,13 @@ export const useMyGameData = () => {
   const { data: hasProfile } = useHasProfile(address || '')
 
   return {
-    myScore: myProfile?.score ? Number(myProfile.score) : 0,
+    myScore: (myProfile as UserProfile)?.score ? Number((myProfile as UserProfile).score) : 0,
     myRank: myRank ? Number(myRank) : 0,
     hasScore: hasProfile || false,
     isLoading: profileLoading || rankLoading,
     address,
-    username: myProfile?.username,
-    fid: myProfile?.fid ? Number(myProfile.fid) : undefined,
-    pfp: myProfile?.pfp,
+    username: (myProfile as UserProfile)?.username,
+    fid: (myProfile as UserProfile)?.fid ? Number((myProfile as UserProfile).fid) : undefined,
+    pfp: (myProfile as UserProfile)?.pfp,
   }
 }
