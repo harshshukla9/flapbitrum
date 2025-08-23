@@ -1301,7 +1301,7 @@ const FlappyBirdGame: React.FC = () => {
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <div className="text-2xl font-bold text-yellow-400">Medium</div>
+                                            <div className="text-sm font-bold text-yellow-400">Medium</div>
                                             <div className="text-xs text-yellow-300">Normal Speed</div>
                                         </div>
                             </div>
@@ -1388,7 +1388,7 @@ const FlappyBirdGame: React.FC = () => {
                     </div>
                     <div className="relative z-10 w-full flex justify-center">
                         <button 
-                            className="py-3 px-6 bg-white/10 backdrop-blur-sm text-white rounded-2xl font-bold shadow active:scale-95 border border-white/20 transition-all duration-200" 
+                            className="py-3 mt-3 px-6 bg-white/10 backdrop-blur-sm text-white rounded-2xl font-bold shadow active:scale-95 border border-white/20 transition-all duration-200" 
                             onClick={() => setMode("")}
                         >
                             ← Back to Menu
