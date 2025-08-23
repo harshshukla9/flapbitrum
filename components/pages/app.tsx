@@ -5,9 +5,10 @@ import { SafeAreaContainer } from '@/components/safe-area-container'
 import FlappyBirdGame from '../FlappyBirdGame'
 import Header from '../Header'
 import { useEffect, useState } from 'react'
+import { actionSchema } from '@farcaster/miniapp-core'
 
 export default function Home() {
-  const { context, isLoading, isSDKLoaded } = useFrame()
+  const { context, isLoading, isSDKLoaded,actions } = useFrame()
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
 
   useEffect(() => {
@@ -17,6 +18,12 @@ export default function Home() {
     window.addEventListener('mousemove', handleMouseMove)
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
+
+  useEffect(() => {
+    if(isSDKLoaded){
+    actions?.addFrame();
+    }
+  }, [isSDKLoaded])
 
   if (isLoading) {
     return (
