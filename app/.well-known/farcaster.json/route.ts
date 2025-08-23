@@ -6,7 +6,7 @@ export async function GET() {
     frame: {
       "name": "Flapbitrum",
       "version": "1",
-      "iconUrl": "https://flapbitrum.vercel.app/images/icon.png",
+      "iconUrl": "https://flapbitrum.vercel.app/images/logo.png",
       "homeUrl": "https://flapbitrum.vercel.app",
       "imageUrl": "https://flapbitrum.vercel.app/images/image.png",
       "splashImageUrl": "https://flapbitrum.vercel.app/images/splash.png",

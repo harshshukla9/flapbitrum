@@ -19,10 +19,10 @@ const frame = {
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Base Farcaster MiniApp Template',
+    title: 'Flapbitrum',
     openGraph: {
-      title: 'Base Farcaster MiniApp Template',
-      description: 'A template for building mini-apps on Farcaster and Base',
+      title: 'Flapbitrum',
+      description: 'Flapbitrum is a fun, crypto-native twist on the classic flappy bird game — built on Arbitrum.',
     },
     other: {
       'fc:frame': JSON.stringify(frame),
