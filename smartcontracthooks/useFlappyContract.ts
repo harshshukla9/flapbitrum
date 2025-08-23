@@ -5,12 +5,18 @@ import contractConfig from '../lib/contract'
 export interface UserScore {
   user: string
   score: bigint
+  username?: string
+  fid?: bigint
+  pfp?: string
 }
 
 export interface LeaderboardEntry {
   user: string
   score: number
   rank?: number
+  username?: string
+  fid?: number
+  pfp?: string
 }
 
 // Read Hooks
@@ -22,12 +28,21 @@ export const useGetAllScores = () => {
   })
 }
 
+export const useGetMyProfile = () => {
+  return useContractRead({
+    address: contractConfig.contractAddress as `0x${string}`,
+    abi: contractConfig.abi,
+    functionName: 'getMyProfile',
+  })
+}
+
 export const useGetMyScore = () => {
   const { address } = useAccount()
   return useContractRead({
     address: contractConfig.contractAddress as `0x${string}`,
     abi: contractConfig.abi,
-    functionName: 'getMyScore',
+    functionName: 'getScore',
+    args: [address as `0x${string}`],
     query: {
       enabled: !!address,
     },
@@ -75,11 +90,11 @@ export const useGetUserRank = (userAddress: string) => {
   })
 }
 
-export const useHasScore = (userAddress: string) => {
+export const useHasProfile = (userAddress: string) => {
   return useContractRead({
     address: contractConfig.contractAddress as `0x${string}`,
     abi: contractConfig.abi,
-    functionName: 'hasScore',
+    functionName: 'hasProfile',
     args: [userAddress as `0x${string}`],
     query: {
       enabled: !!userAddress,
@@ -91,17 +106,19 @@ export const useHasScore = (userAddress: string) => {
 export const useSetScore = () => {
   const { data, writeContract, isPending, error, isSuccess } = useContractWrite()
 
-  const setScore = (score: number) => {
+  const setScore = (score: number, username: string, fid: number, pfp: string) => {
     console.log("🔍 Attempting to save score:", score);
+    console.log("🔍 Username:", username);
+    console.log("🔍 FID:", fid);
+    console.log("🔍 PFP:", pfp);
     console.log("🔍 Contract address:", contractConfig.contractAddress);
-    console.log("🔍 Contract ABI:", contractConfig.abi);
     
     try {
       writeContract({
         address: contractConfig.contractAddress as `0x${string}`,
         abi: contractConfig.abi,
         functionName: 'setScore',
-        args: [BigInt(score)],
+        args: [BigInt(score), username, BigInt(fid), pfp],
       })
       console.log("🔍 Write contract called successfully");
     } catch (err) {
@@ -127,10 +144,13 @@ export const useLeaderboard = (limit: number = 10) => {
   console.log("🔍 Leaderboard data:", { topScores, totalUsers, error });
 
   const leaderboardData: LeaderboardEntry[] = Array.isArray(topScores) 
-    ? topScores.map((entry: UserScore, index: number) => ({
+    ? topScores.map((entry: any, index: number) => ({
         user: entry.user,
         score: Number(entry.score),
         rank: index + 1,
+        username: entry.username,
+        fid: entry.fid ? Number(entry.fid) : undefined,
+        pfp: entry.pfp,
       }))
     : []
 
@@ -146,15 +166,18 @@ export const useLeaderboard = (limit: number = 10) => {
 // Hook for current user's game data
 export const useMyGameData = () => {
   const { address } = useAccount()
-  const { data: myScore, isLoading: scoreLoading } = useGetMyScore()
+  const { data: myProfile, isLoading: profileLoading } = useGetMyProfile()
   const { data: myRank, isLoading: rankLoading } = useGetUserRank(address || '')
-  const { data: hasScore } = useHasScore(address || '')
+  const { data: hasProfile } = useHasProfile(address || '')
 
   return {
-    myScore: myScore ? Number(myScore) : 0,
+    myScore: myProfile?.score ? Number(myProfile.score) : 0,
     myRank: myRank ? Number(myRank) : 0,
-    hasScore: hasScore || false,
-    isLoading: scoreLoading || rankLoading,
+    hasScore: hasProfile || false,
+    isLoading: profileLoading || rankLoading,
     address,
+    username: myProfile?.username,
+    fid: myProfile?.fid ? Number(myProfile.fid) : undefined,
+    pfp: myProfile?.pfp,
   }
 }

@@ -7,7 +7,7 @@ import { useAccount } from 'wagmi'
 const ScorePage = () => {
   const { address, isConnected } = useAccount()
   const { leaderboard, isLoading, error, refetch, totalUsers } = useLeaderboard(30)
-  const { myScore, myRank, hasScore, isLoading: myDataLoading } = useMyGameData()
+  const { myScore, myRank, hasScore, isLoading: myDataLoading, username, fid, pfp } = useMyGameData()
   const [timeFilter, setTimeFilter] = useState<'all' | 'today' | 'week'>('all')
   const [isClient, setIsClient] = useState(false)
   const [timeLeft, setTimeLeft] = useState({
@@ -16,25 +16,25 @@ const ScorePage = () => {
     minutes: 0,
     seconds: 0
   })
+  const [showRewardInfo, setShowRewardInfo] = useState(false)
 
   useEffect(() => {
     setIsClient(true)
+    
+            // Check if user has seen the reward info before on leaderboard page
+        const hasSeenLeaderboardRewardInfo = localStorage.getItem('flapbitrum_leaderboard_reward_info_seen')
+        if (!hasSeenLeaderboardRewardInfo) {
+            // Show reward info popup for first-time visitors to leaderboard
+            setTimeout(() => {
+                setShowRewardInfo(true)
+            }, 1000) // Show after 1 second delay
+        }
   }, [])
 
-  // Countdown timer for 7 days from now
+  // Countdown timer using Unix timestamp 1756441969 as end date
   useEffect(() => {
-    // Get or create the end date from localStorage
-    let endDate: Date
-    const storedEndDate = localStorage.getItem('flappyContestEndDate')
-    
-    if (storedEndDate) {
-      endDate = new Date(storedEndDate)
-    } else {
-      // Create new end date (7 days from now) and store it
-      endDate = new Date()
-      endDate.setDate(endDate.getDate() + 7) // 7 days from now
-      localStorage.setItem('flappyContestEndDate', endDate.toISOString())
-    }
+    // Convert Unix timestamp to Date object
+    const endDate = new Date(1756441969 * 1000) // Convert seconds to milliseconds
 
     const updateTimer = () => {
       const now = new Date().getTime()
@@ -141,9 +141,16 @@ const ScorePage = () => {
                 $50 USDC Reward Pool
               </h2>
               <span className="text-3xl">💰</span>
+              <button
+                onClick={() => setShowRewardInfo(true)}
+                className="ml-2 w-8 h-8 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 rounded-full flex items-center justify-center transition-all duration-200 border border-yellow-400/30 hover:scale-110"
+                title="Reward Distribution Info"
+              >
+                <span className="text-sm font-bold">ℹ️</span>
+              </button>
             </div>
             <p className="text-lg text-yellow-200 mb-4">
-              Top 30 players will share the reward pool!
+              Top 15 players will share the reward pool!
             </p>
             
             {/* Countdown Timer */}
@@ -178,9 +185,7 @@ const ScorePage = () => {
             </div>
           </div>
           
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
-            🏆 Flappy Bird Leaderboard
-          </h1>
+          
           <p className="text-xl text-gray-300 mb-6">
             {totalUsers} players competing for the top spot
           </p>
@@ -206,12 +211,35 @@ const ScorePage = () => {
         {/* User Stats */}
         {isClient && isConnected && (
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 mb-8">
+            <div className="flex items-center justify-center mb-4">
+              {/* Profile Picture */}
+              {pfp && (
+                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white/20 mr-4">
+                  <img 
+                    src={pfp} 
+                    alt="Your Profile" 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+              <div className="text-center">
+                <div className="text-xl font-bold text-white mb-1">
+                  {username || formatAddress(address || '')}
+                </div>
+                {fid && (
+                  <div className="text-sm text-gray-300">FID: {fid}</div>
+                )}
+              </div>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center">
-                {/* <div className="text-3xl font-bold text-white mb-2">
+                <div className="text-3xl font-bold text-white mb-2">
                   {myDataLoading ? '...' : myScore}
                 </div>
-                <div className="text-gray-300">Your Best Score</div> */}
+                <div className="text-gray-300">Your Best Score</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-white mb-2">
@@ -233,8 +261,8 @@ const ScorePage = () => {
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-white">Top 30 Players</h2>
-              <p className="text-sm text-gray-300">💰 Top 30 will share $50 USDC reward pool</p>
+              <h2 className="text-2xl font-bold text-white">Top 15 Players</h2>
+              <p className="text-sm text-gray-300">💰 Top 15 will share $50 USDC reward pool</p>
             </div>
             <button
               onClick={() => refetch()}
@@ -273,24 +301,55 @@ const ScorePage = () => {
                     }`}
                   >
                     <div className="flex items-center gap-4">
-                      <div className="text-2xl font-bold text-white min-w-[60px]">
-                        {getRankIcon(rank)}
-                      </div>
-                      <div>
-                        <div className="font-semibold text-white">
-                          {formatAddress(entry.user)}
-                          {address?.toLowerCase() === entry.user.toLowerCase() && (
-                            <span className="ml-2 text-blue-400 text-sm">(You)</span>
-                          )}
-                          {isInRewardPool && (
-                            <span className="ml-2 text-yellow-400 text-sm">💰</span>
-                          )}
-                        </div>
-                        <div className="text-sm text-gray-400">
-                          Rank #{rank}
-                          {isInRewardPool && (
-                            <span className="ml-2 text-yellow-300">Reward Eligible</span>
-                          )}
+                      <div className="flex items-center gap-3">
+                        {/* Profile Picture with Rank Icon Overlay */}
+                        {entry.pfp ? (
+                          <div className="relative w-12 h-12">
+                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20">
+                              <img 
+                                src={entry.pfp} 
+                                alt="Profile" 
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            </div>
+                            {/* Rank Icon Overlay */}
+                            <div className="absolute -top-1 -right-1 bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-white shadow-lg">
+                              {rank <= 3 ? getRankIcon(rank) : rank}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="relative w-12 h-12">
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center border-2 border-white/20">
+                              <span className="text-white text-lg font-bold">
+                                {(entry.username || formatAddress(entry.user)).charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            {/* Rank Icon Overlay */}
+                            <div className="absolute -top-1 -right-1 bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-white shadow-lg">
+                              {rank <= 3 ? getRankIcon(rank) : rank}
+                            </div>
+                          </div>
+                        )}
+                        <div>
+                          <div className="font-semibold text-white">
+                            {entry.username || formatAddress(entry.user)}
+                            {address?.toLowerCase() === entry.user.toLowerCase() && (
+                              <span className="ml-2 text-blue-400 text-sm">(You)</span>
+                            )}
+                            {isInRewardPool && (
+                              <span className="ml-2 text-yellow-400 text-sm">💰</span>
+                            )}
+                          </div>
+                          <div className="text-sm text-gray-400">
+                            Rank #{rank}
+                           
+                            {isInRewardPool && (
+                              <span className="ml-2 text-yellow-300">Reward Eligible</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -313,6 +372,157 @@ const ScorePage = () => {
               <p className="text-gray-300 mb-4">
                 Connect your wallet to see your scores and compete on the leaderboard!
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* Reward Info Popup */}
+        {showRewardInfo && (
+          <div 
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => {
+              setShowRewardInfo(false)
+              // Mark that user has seen the reward info on leaderboard page
+              localStorage.setItem('flapbitrum_leaderboard_reward_info_seen', 'true')
+            }}
+          >
+                        <div 
+              className="bg-gradient-to-br from-blue-900/95 via-indigo-800/95 to-blue-700/95 backdrop-blur-lg rounded-2xl border border-white/20 shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside modal
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-white/20">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">💰</span>
+                  <h2 className="text-xl font-bold text-white">Reward Distribution</h2>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowRewardInfo(false)
+                    // Mark that user has seen the reward info on leaderboard page
+                    localStorage.setItem('flapbitrum_leaderboard_reward_info_seen', 'true')
+                  }}
+                  className="w-8 h-8 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all duration-200"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6">
+                <div className="mb-6">
+                  <h3 className="text-lg font-bold text-yellow-300 mb-3">🏆 $50 USDC Prize Pool</h3>
+                  <p className="text-sm text-gray-300 mb-4">
+                    The total prize pool of $50 USDC will be distributed among the top 15 players based on their final scores.
+                  </p>
+                </div>
+
+                {/* Reward Distribution Table */}
+                <div className="space-y-3 mb-6">
+                  <h4 className="text-md font-semibold text-white mb-3">📊 Distribution Breakdown:</h4>
+                  
+                  {/* Top 3 Prizes */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-3 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl border border-yellow-400/30">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">🥇</span>
+                        <div>
+                          <div className="font-bold text-white">1st Place</div>
+                          <div className="text-sm text-yellow-300">Champion</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-yellow-300">$7.50</div>
+                        <div className="text-xs text-gray-300">15% of pool</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-gradient-to-r from-gray-400/20 to-gray-500/20 rounded-xl border border-gray-400/30">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">🥈</span>
+                        <div>
+                          <div className="font-bold text-white">2nd Place</div>
+                          <div className="text-sm text-gray-300">Runner-up</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-gray-300">$6.00</div>
+                        <div className="text-xs text-gray-300">12% of pool</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-500/20 to-red-500/20 rounded-xl border border-orange-400/30">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">🥉</span>
+                        <div>
+                          <div className="font-bold text-white">3rd Place</div>
+                          <div className="text-sm text-orange-300">Bronze</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-orange-300">$5.00</div>
+                        <div className="text-xs text-gray-300">10% of pool</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Places 4-10 */}
+                  <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-xl border border-blue-400/30">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">🏅</span>
+                      <div>
+                        <div className="font-bold text-white">4th - 10th Place</div>
+                        <div className="text-sm text-blue-300">7 players</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-blue-300">$3.50 each</div>
+                      <div className="text-xs text-gray-300">49% of pool</div>
+                    </div>
+                  </div>
+
+                  {/* Places 11-15 */}
+                  <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl border border-purple-400/30">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">🎯</span>
+                      <div>
+                        <div className="font-bold text-white">11th - 15th Place</div>
+                        <div className="text-sm text-purple-300">5 players</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-purple-300">$2.00 each</div>
+                      <div className="text-xs text-gray-300">10% of pool</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Additional Info */}
+                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                  <h4 className="text-md font-semibold text-white mb-2">📋 Important Notes:</h4>
+                  <ul className="text-sm text-gray-300 space-y-1">
+                    <li>• Rewards are paid in USDC on Arbitrum network</li>
+                    <li>• Minimum payout threshold applies</li>
+                    <li>• Winners must have a connected wallet</li>
+                    <li>• Contest ends on August 29, 2025</li>
+                    <li>• Ties are resolved by earliest submission time</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-6 border-t border-white/20">
+                <button
+                  onClick={() => {
+                    setShowRewardInfo(false)
+                    // Mark that user has seen the reward info on leaderboard page
+                    localStorage.setItem('flapbitrum_leaderboard_reward_info_seen', 'true')
+                  }}
+                  className="w-full py-3 px-6 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-bold shadow-lg active:scale-95 hover:from-blue-600 hover:to-indigo-700 transition-all duration-200"
+                >
+                  Got it! 👍
+                </button>
+              </div>
             </div>
           </div>
         )}

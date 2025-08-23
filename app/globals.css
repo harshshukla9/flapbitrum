@@ -30,4 +30,356 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+  
+  /* Custom Arbitrum theme animations */
+  .animate-fadein {
+    animation: fadeIn 0.6s ease-out;
+  }
+  
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+  
+  .animate-blockchain {
+    animation: blockchain 4s linear infinite;
+  }
+  
+  /* Gaming UI animations */
+  .animate-scan {
+    animation: scan 3s linear infinite;
+  }
+  
+  .animate-glitch {
+    animation: glitch 0.3s ease-in-out infinite;
+  }
+  
+  .animate-neon {
+    animation: neon 2s ease-in-out infinite alternate;
+  }
+  
+  .animate-cyber {
+    animation: cyber 4s linear infinite;
+  }
+  
+  .animate-hologram {
+    animation: hologram 5s ease-in-out infinite;
+  }
+  
+  /* Backdrop blur utilities */
+  .backdrop-blur-sm {
+    backdrop-filter: blur(4px);
+  }
+  
+  .backdrop-blur-md {
+    backdrop-filter: blur(8px);
+  }
+  
+  .backdrop-blur-lg {
+    backdrop-filter: blur(16px);
+  }
+}
+
+/* Custom keyframe animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 5px rgba(40, 160, 240, 0.5);
+  }
+  to {
+    box-shadow: 0 0 20px rgba(40, 160, 240, 0.8), 0 0 30px rgba(40, 160, 240, 0.6);
+  }
+}
+
+@keyframes blockchain {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Gaming UI animations */
+@keyframes scan {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes glitch {
+  0%, 100% {
+    transform: translate(0);
+  }
+  20% {
+    transform: translate(-2px, 2px);
+  }
+  40% {
+    transform: translate(-2px, -2px);
+  }
+  60% {
+    transform: translate(2px, 2px);
+  }
+  80% {
+    transform: translate(2px, -2px);
+  }
+}
+
+@keyframes neon {
+  from {
+    text-shadow: 0 0 5px #28A0F0, 0 0 10px #28A0F0, 0 0 15px #28A0F0;
+  }
+  to {
+    text-shadow: 0 0 10px #28A0F0, 0 0 20px #28A0F0, 0 0 30px #28A0F0;
+  }
+}
+
+@keyframes cyber {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes hologram {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+/* Arbitrum theme colors */
+.arbitrum-blue {
+  color: #28A0F0;
+}
+
+.arbitrum-dark-blue {
+  color: #0D2B5E;
+}
+
+.arbitrum-medium-blue {
+  color: #1E4D8C;
+}
+
+.bg-arbitrum-blue {
+  background-color: #28A0F0;
+}
+
+.bg-arbitrum-dark-blue {
+  background-color: #0D2B5E;
+}
+
+.bg-arbitrum-medium-blue {
+  background-color: #1E4D8C;
+}
+
+/* Gradient backgrounds */
+.bg-arbitrum-gradient {
+  background: linear-gradient(135deg, #0D2B5E 0%, #1E4D8C 50%, #28A0F0 100%);
+}
+
+.bg-arbitrum-gradient-reverse {
+  background: linear-gradient(135deg, #28A0F0 0%, #1E4D8C 50%, #0D2B5E 100%);
+}
+
+/* Glass morphism effects */
+.glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.glass-dark {
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Blockchain-inspired borders */
+.border-blockchain {
+  border: 2px solid transparent;
+  background: linear-gradient(white, white) padding-box,
+              linear-gradient(45deg, #28A0F0, #1E4D8C, #0D2B5E) border-box;
+}
+
+/* Gaming UI effects */
+.gaming-border {
+  position: relative;
+}
+
+.gaming-border::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 2px solid transparent;
+  background: linear-gradient(45deg, #28A0F0, #1E4D8C, #28A0F0) border-box;
+  border-radius: inherit;
+  mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  animation: cyber 3s linear infinite;
+}
+
+.gaming-glow {
+  box-shadow: 0 0 20px rgba(40, 160, 240, 0.3), inset 0 0 20px rgba(40, 160, 240, 0.1);
+}
+
+.gaming-text {
+  text-shadow: 0 0 10px rgba(40, 160, 240, 0.8);
+}
+
+/* Hover effects */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.hover-gaming {
+  transition: all 0.3s ease;
+}
+
+.hover-gaming:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 15px 30px rgba(40, 160, 240, 0.3);
+}
+
+/* Loading spinner */
+.spinner {
+  border: 3px solid rgba(40, 160, 240, 0.3);
+  border-top: 3px solid #28A0F0;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Loading bar animation */
+@keyframes loadingBar {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Gaming button effects */
+.gaming-button {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.gaming-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.gaming-button:hover::before {
+  left: 100%;
+}
+
+.gaming-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(40, 160, 240, 0.4);
+}
+
+/* Particle effects */
+.particles {
+  position: relative;
+}
+
+.particles::before,
+.particles::after {
+  content: '';
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #28A0F0;
+  border-radius: 50%;
+  animation: particle-float 3s ease-in-out infinite;
+}
+
+.particles::before {
+  top: 20%;
+  left: 10%;
+  animation-delay: 0s;
+}
+
+.particles::after {
+  top: 60%;
+  right: 15%;
+  animation-delay: 1.5s;
+}
+
+@keyframes particle-float {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(-20px) scale(1.2);
+    opacity: 1;
+  }
 }
