@@ -3,5 +3,5 @@ export interface SafeAreaInsets {
   bottom?: number;
   left?: number;
   right?: number;
-  //interface
+  //interfacee
 }
