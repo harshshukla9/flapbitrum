@@ -38,22 +38,7 @@ const Header: React.FC = () => {
                     Navigate the L2 blockchain!
                 </p>
                 
-                <div className="flex items-center gap-4 text-sm text-blue-200">
-                    <div className="flex items-center gap-1">
-                        <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                        <span>Live on Arbitrum</span>
-                    </div>
-                    <div className="w-px h-4 bg-blue-300/30"></div>
-                    <div className="flex items-center gap-1">
-                        <span>⚡</span>
-                        <span>Low Gas Fees</span>
-                    </div>
-                    <div className="w-px h-4 bg-blue-300/30"></div>
-                    <div className="flex items-center gap-1">
-                        <span>🏆</span>
-                        <span>Leaderboard</span>
-                    </div>
-                </div>
+             
             </div>
         </header>
     );

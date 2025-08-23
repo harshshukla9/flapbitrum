@@ -657,7 +657,15 @@ const FlappyBirdGame: React.FC = () => {
 
     const handleGameOver = (finalScore: number) => {
         console.log("🔍 Game over with score:", finalScore);
-        // Don't automatically save - let user decide
+        
+        // Auto-save score if conditions are met
+        if (isConnected && address && finalScore > contractScore && !isSavingScore && !scoreSaved) {
+            console.log("🔍 Auto-saving score to chain...");
+            // Small delay to ensure state is updated
+            setTimeout(() => {
+                handleSaveToChain();
+            }, 100);
+        }
     };
 
     const handleSaveToChain = () => {
