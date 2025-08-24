@@ -6,7 +6,7 @@ import { useAccount } from 'wagmi'
 
 const ScorePage = () => {
   const { address, isConnected } = useAccount()
-  const { leaderboard, isLoading, error, refetch, totalUsers } = useLeaderboard(30)
+  const { leaderboard, isLoading, error, refetch, totalUsers } = useLeaderboard(100)
   const { myScore, myRank, hasScore, isLoading: myDataLoading, username, fid, pfp } = useMyGameData()
   const [timeFilter, setTimeFilter] = useState<'all' | 'today' | 'week'>('all')
   const [isClient, setIsClient] = useState(false)
@@ -288,6 +288,7 @@ const ScorePage = () => {
               {leaderboard.map((entry, index) => {
                 const rank = entry.rank || index + 1;
                 const isInRewardPool = rank <= 30;
+                const isTop15 = rank <= 15;
                 
                 return (
                   <div
@@ -346,8 +347,10 @@ const ScorePage = () => {
                           <div className="text-sm text-gray-400">
                             Rank #{rank}
                            
-                            {isInRewardPool && (
+                            {isTop15 ? (
                               <span className="ml-2 text-yellow-300">Reward Eligible</span>
+                            ) : (
+                              <span className="ml-2 text-orange-300">Play more to climb the leaderboard</span>
                             )}
                           </div>
                         </div>
