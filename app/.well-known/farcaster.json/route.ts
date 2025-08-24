@@ -20,7 +20,11 @@ export async function GET() {
       "header": "eyJmaWQiOjExMDg1NzQsInR5cGUiOiJhdXRoIiwia2V5IjoiMHhkODUzOTVERWYzZDYzM0U3ODYyOTFiZjlERTU0ZDMyNGVlYkM3OTE3In0",
       "payload": "eyJkb21haW4iOiJmbGFwYml0cnVtLnZlcmNlbC5hcHAifQ",
       "signature": "4gTYaBgccYPoqlC9YVyq+HUV0zDxTAiC1cnbAOBIKBMFR69Wj+Y4osR2fAIi9ffUveTo9d6m7a7ftvdZ+HvXABw="
-    }
+    },
+    
+    "baseBuilder": {
+    "allowedAddresses": ["0x721f07F9E4b5b2D522D0D657cCEebfb64487d8DC"]
+  }
   };
 
   return NextResponse.json(farcasterConfig);
