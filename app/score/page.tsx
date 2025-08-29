@@ -124,12 +124,32 @@ const ScorePage = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <div className="flex justify-between items-center mb-6">
-            <button
-              onClick={() => window.location.href = '/'}
-              className="bg-white/10 backdrop-blur-sm text-white px-4 py-2 rounded-lg font-semibold hover:bg-white/20 transition-colors border border-white/20"
-            >
-              ← Back to Home
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => window.location.href = '/'}
+                className="bg-white/10 backdrop-blur-sm text-white px-4 py-2 rounded-lg font-semibold hover:bg-white/20 transition-colors border border-white/20"
+              >
+                ← Back to Home
+              </button>
+              <button
+                onClick={() => window.location.href = '/unified-leaderboard'}
+                className="bg-green-600/20 backdrop-blur-sm text-green-300 px-4 py-2 rounded-lg font-semibold hover:bg-green-600/30 transition-colors border border-green-500/30"
+              >
+                🗄️ Unified Leaderboard
+              </button>
+              <button
+                onClick={() => window.location.href = '/auto-sync'}
+                className="bg-purple-600/20 backdrop-blur-sm text-purple-300 px-4 py-2 rounded-lg font-semibold hover:bg-purple-600/30 transition-colors border border-purple-500/30"
+              >
+                🔄 Auto-Sync Leaderboard
+              </button>
+              <button
+                onClick={() => window.location.href = '/weekly-tournament'}
+                className="bg-emerald-600/20 backdrop-blur-sm text-emerald-300 px-4 py-2 rounded-lg font-semibold hover:bg-emerald-600/30 transition-colors border border-emerald-500/30"
+              >
+                🏆 Weekly Tournament
+              </button>
+            </div>
             <div className="flex-1"></div>
           </div>
           

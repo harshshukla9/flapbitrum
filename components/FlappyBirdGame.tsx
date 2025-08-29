@@ -1,6 +1,8 @@
 "use client";
 import React, { useEffect, useRef, useState } from 'react';
 import { useSetScore, useMyGameData } from '../smartcontracthooks';
+import { useSetScoreWithMongo } from '../smartcontracthooks/useFlappyContractWithMongo';
+import { useCurrentActiveWeek } from '../smartcontracthooks/useWeeklyEvents';
 import { useAccount, useConnect } from 'wagmi';
 import { useFrame } from './farcaster-provider';
 import RewardInfoPopup from './RewardInfoPopup';
@@ -579,6 +581,13 @@ const FlappyBirdGame: React.FC = () => {
     const { address, isConnected } = useAccount();
     const { connect, connectors } = useConnect();
     const { setScore: saveScoreToContract, isPending: isSavingScore, isSuccess: scoreSaved } = useSetScore();
+    
+    // Get current active week
+    const { data: currentWeekData } = useCurrentActiveWeek();
+    const currentWeek = currentWeekData?.currentWeek;
+    const currentEventId = currentWeek?.eventId || 'week-2';
+    
+    const { setScore: saveScoreToContractWithMongo, isPending: isSavingScoreWithMongo, isSuccess: scoreSavedWithMongo, isMongoUpdating } = useSetScoreWithMongo(currentEventId);
     const { myScore: contractScore, myRank, hasScore, username, fid, pfp } = useMyGameData();
     const [isClient, setIsClient] = useState(false);
     const { actions, context } = useFrame();
@@ -659,8 +668,8 @@ const FlappyBirdGame: React.FC = () => {
         console.log("🔍 Game over with score:", finalScore);
         
         // Auto-save score if conditions are met
-        if (isConnected && address && finalScore > contractScore && !isSavingScore && !scoreSaved) {
-            console.log("🔍 Auto-saving score to chain...");
+        if (isConnected && address && finalScore > contractScore && !isSavingScoreWithMongo && !scoreSavedWithMongo) {
+            console.log("🔍 Auto-saving score to chain ...");
             // Small delay to ensure state is updated
             setTimeout(() => {
                 handleSaveToChain();
@@ -682,9 +691,10 @@ const FlappyBirdGame: React.FC = () => {
             const farcasterPfp = context?.user?.pfpUrl || pfp || "";
             
             console.log("🔍 Farcaster data - Username:", farcasterUsername, "FID:", farcasterFid, "PFP:", farcasterPfp);
-            console.log("🔍 User requested to save score to smart contract:", score);
+            console.log("🔍 User requested to save score to smart contract and MongoDB:", score);
             
-            saveScoreToContract(score, farcasterUsername, farcasterFid, farcasterPfp);
+            // Use the enhanced hook that automatically syncs to MongoDB
+            saveScoreToContractWithMongo(score, farcasterUsername, farcasterFid, farcasterPfp);
         } else {
             console.log("🔍 Cannot save score - conditions not met");
         }
@@ -1013,7 +1023,7 @@ const FlappyBirdGame: React.FC = () => {
                         </button>
                         <button 
                             className="w-full py-6 px-8 bg-gradient-to-r from-yellow-500/80 to-orange-600/80 backdrop-blur-sm text-white text-xl rounded-3xl font-bold shadow-2xl active:scale-95 border border-white/30 transition-all duration-200 hover:from-yellow-600/90 hover:to-orange-700/90 relative overflow-hidden group" 
-                            onClick={() => window.location.href = '/score'}
+                            onClick={() => window.location.href = '/unified-leaderboard'}
                         >
                             <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/20 to-orange-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-400 to-orange-500 transform -translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
@@ -1100,7 +1110,7 @@ const FlappyBirdGame: React.FC = () => {
                             </button>
                             <button 
                                 className="w-full py-4 px-6 bg-gradient-to-r from-yellow-500 to-orange-600 text-white text-lg rounded-2xl font-bold shadow-lg active:scale-95 hover:from-yellow-600 hover:to-orange-700 transition-all duration-200 border border-white/20 relative overflow-hidden group" 
-                                onClick={() => window.location.href = '/score'}
+                                onClick={() => window.location.href = '/unified-leaderboard'}
                             >
                                 <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/20 to-orange-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-400 to-orange-500 transform -translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
@@ -1589,7 +1599,7 @@ const FlappyBirdGame: React.FC = () => {
                                     </div>
                                     
                                     {/* Save to Chain Button */}
-                                    {score > contractScore && !isSavingScore && !scoreSaved && (
+                                    {score > contractScore && !isSavingScoreWithMongo && !scoreSavedWithMongo && (
                                         <button
                                             onClick={handleSaveToChain}
                                             className="w-full py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-bold shadow-lg active:scale-95 hover:from-green-600 hover:to-emerald-700 transition-all duration-200 mb-3"
@@ -1598,19 +1608,25 @@ const FlappyBirdGame: React.FC = () => {
                                         </button>
                                     )}
                                     
-                                    {isSavingScore && (
+                                    {isSavingScoreWithMongo && (
                                         <div className="text-center text-yellow-300 py-3">
                                             💾 Saving score to blockchain...
                                         </div>
                                     )}
                                     
-                                    {scoreSaved && (
+                                    {isMongoUpdating && (
+                                        <div className="text-center text-blue-300 py-2">
+                                            🗄️ Updating ...
+                                        </div>
+                                    )}
+                                    
+                                    {scoreSavedWithMongo && (
                                         <div className="text-center text-green-300 py-3">
                                             ✅ Score saved to blockchain!
                                         </div>
                                     )}
                                     
-                                    {score <= contractScore && !isSavingScore && !scoreSaved && (
+                                    {score <= contractScore && !isSavingScoreWithMongo && !scoreSavedWithMongo && (
                                         <div className="text-center text-gray-300 py-3">
                                             💡 Score not higher than your best ({contractScore})
                                         </div>
@@ -1688,7 +1704,7 @@ const FlappyBirdGame: React.FC = () => {
                                 </div>
                                 
                                 {/* Save to Chain Button */}
-                                {score > contractScore && !isSavingScore && !scoreSaved && (
+                                {score > contractScore && !isSavingScoreWithMongo && !scoreSavedWithMongo && (
                                     <button
                                         onClick={handleSaveToChain}
                                         className="w-full py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-bold shadow-lg active:scale-95 hover:from-green-600 hover:to-emerald-700 transition-all duration-200 mb-3"
@@ -1697,19 +1713,25 @@ const FlappyBirdGame: React.FC = () => {
                                     </button>
                                 )}
                                 
-                                {isSavingScore && (
+                                {isSavingScoreWithMongo && (
                                     <div className="text-center text-yellow-600 py-3">
-                                        💾 Saving score to blockchain...
+                                        💾 Saving score to blockchain and ...
                                     </div>
                                 )}
                                 
-                                {scoreSaved && (
+                                {isMongoUpdating && (
+                                    <div className="text-center text-blue-600 py-2">
+                                        🗄️ Updating ...
+                                    </div>
+                                )}
+                                
+                                {scoreSavedWithMongo && (
                                     <div className="text-center text-green-600 py-3">
                                         ✅ Score saved to blockchain!
                                     </div>
                                 )}
                                 
-                                {score <= contractScore && !isSavingScore && !scoreSaved && (
+                                {score <= contractScore && !isSavingScoreWithMongo && !scoreSavedWithMongo && (
                                     <div className="text-center text-gray-500 py-3">
                                         💡 Score not higher than your best ({contractScore})
                                     </div>
