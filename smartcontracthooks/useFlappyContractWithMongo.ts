@@ -1,4 +1,5 @@
-import { useContractRead, useContractWrite, useAccount, useWatchContractEvent } from 'wagmi'
+import React from 'react'
+import { useContractRead, useContractWrite, useAccount, useWatchContractEvent, useWaitForTransactionReceipt } from 'wagmi'
 import { parseEther } from 'viem'
 import contractConfig from '../lib/contract'
 import { useUpdateLeaderboardEntry } from './useMongoLeaderboard'
@@ -35,7 +36,18 @@ export const useSetScoreWithMongo = (eventId: string = 'week-1') => {
   const queryClient = useQueryClient()
   const updateLeaderboardEntry = useUpdateLeaderboardEntry()
 
-  const { data, writeContract, isPending, error, isSuccess } = useContractWrite()
+  // Store the score data that needs to be synced after confirmation
+  const [pendingScoreData, setPendingScoreData] = React.useState<{
+    score: number
+    username: string
+    fid: number
+    pfp: string
+  } | null>(null)
+
+  const { data: hash, writeContract, isPending: isWritePending, error: writeError } = useContractWrite()
+  const { isLoading: isConfirming, isSuccess: isConfirmed, error: confirmError } = useWaitForTransactionReceipt({
+    hash,
+  })
 
   const setScore = async (score: number, username: string, fid: number, pfp: string) => {
     console.log("🔍 Attempting to save score:", score);
@@ -43,31 +55,50 @@ export const useSetScoreWithMongo = (eventId: string = 'week-1') => {
     console.log("🔍 FID:", fid);
     console.log("🔍 PFP:", pfp);
     console.log("🔍 Contract address:", contractConfig.contractAddress);
-    
+
     try {
-      const result = await writeContract({
+      // Store the score data for later use
+      setPendingScoreData({ score, username, fid, pfp });
+
+      // Step 1: Send the transaction
+      const txHash = await writeContract({
         address: contractConfig.contractAddress as `0x${string}`,
         abi: contractConfig.abi,
         functionName: 'setScore',
         args: [BigInt(score), username, BigInt(fid), pfp],
       })
-      
-      console.log("🔍 Write contract called successfully");
-      
-      // If contract call is successful, update MongoDB
-      if (address) {
+
+      console.log("🔍 Transaction sent successfully, hash:", txHash);
+      console.log("⏳ Waiting for transaction confirmation...");
+
+      return { txHash, score, username, fid, pfp, eventId };
+
+    } catch (err) {
+      console.error("🔍 Error calling writeContract:", err);
+      // Clear pending data on error
+      setPendingScoreData(null);
+      throw err;
+    }
+  }
+
+  // Effect to handle MongoDB update after transaction confirmation
+  React.useEffect(() => {
+    const updateMongoAfterConfirmation = async () => {
+      if (isConfirmed && hash && address && pendingScoreData) {
+        console.log("✅ Transaction confirmed! Updating MongoDB...");
+
         try {
           console.log("🔄 Attempting to sync score to MongoDB for event:", eventId);
-          
+
           const result = await updateLeaderboardEntry.mutateAsync({
             user: address,
-            username,
-            fid: fid.toString(),
-            pfp,
-            score,
+            username: pendingScoreData.username,
+            fid: pendingScoreData.fid.toString(),
+            pfp: pendingScoreData.pfp,
+            score: pendingScoreData.score,
             eventId,
           })
-          
+
           console.log("✅ MongoDB updated successfully for event:", eventId);
           console.log("📊 Cumulative scoring result:", {
             operation: result.data?.operation,
@@ -76,37 +107,48 @@ export const useSetScoreWithMongo = (eventId: string = 'week-1') => {
             totalScore: result.data?.totalScore,
             message: result.message
           });
-          
+
           // Invalidate and refetch leaderboard data
           queryClient.invalidateQueries({
             queryKey: ['mongo-leaderboard', eventId],
           })
-          
+
           console.log("🔄 Leaderboard cache invalidated for event:", eventId);
-          
+
         } catch (mongoError) {
           console.error("❌ Error updating MongoDB:", mongoError);
-          console.error("❌ MongoDB sync failed, but blockchain transaction was successful");
+          console.error("❌ MongoDB sync failed even though blockchain transaction was successful");
           console.error("❌ User address:", address);
           console.error("❌ Event ID:", eventId);
-          console.error("❌ Score:", score);
-          // Don't throw here - contract transaction was successful
+          console.error("❌ Score data:", pendingScoreData);
+          // Still clear pending data even on MongoDB error
         }
+
+        // Clear pending data after processing
+        setPendingScoreData(null);
       }
-      
-    } catch (err) {
-      console.error("🔍 Error calling writeContract:", err);
-      throw err;
+    };
+
+    updateMongoAfterConfirmation();
+  }, [isConfirmed, hash, address, pendingScoreData, eventId, updateLeaderboardEntry, queryClient]);
+
+  // Effect to handle transaction failure
+  React.useEffect(() => {
+    if (confirmError && pendingScoreData) {
+      console.error("❌ Transaction failed! Not updating MongoDB.");
+      console.error("❌ Transaction error:", confirmError);
+      console.error("❌ Pending score data will be discarded:", pendingScoreData);
+      setPendingScoreData(null);
     }
-  }
+  }, [confirmError, pendingScoreData]);
 
   return {
     setScore,
-    isPending,
-    isConfirming: isPending,
-    isSuccess,
-    error,
-    hash: data,
+    isPending: isWritePending,
+    isConfirming,
+    isSuccess: isConfirmed,
+    error: writeError || confirmError,
+    hash,
     isMongoUpdating: updateLeaderboardEntry.isPending,
   }
 }
