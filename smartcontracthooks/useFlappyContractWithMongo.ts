@@ -1,5 +1,5 @@
 import React from 'react'
-import { useContractRead, useContractWrite, useAccount, useWatchContractEvent, useWaitForTransactionReceipt } from 'wagmi'
+import { useReadContract, useWriteContract, useAccount, useWatchContractEvent, useWaitForTransactionReceipt } from 'wagmi'
 import { parseEther } from 'viem'
 import contractConfig from '../lib/contract'
 import { useUpdateLeaderboardEntry } from './useMongoLeaderboard'
@@ -44,7 +44,7 @@ export const useSetScoreWithMongo = (eventId: string = 'week-1') => {
     pfp: string
   } | null>(null)
 
-  const { data: hash, writeContract, isPending: isWritePending, error: writeError } = useContractWrite()
+  const { data: hash, writeContract, isPending: isWritePending, error: writeError } = useWriteContract()
   const { isLoading: isConfirming, isSuccess: isConfirmed, error: confirmError } = useWaitForTransactionReceipt({
     hash,
   })
@@ -256,14 +256,14 @@ export const useWatchContractEvents = (eventId: string = 'week-1') => {
 
 // Enhanced hook that combines contract data with MongoDB sync
 export const useEnhancedLeaderboard = (eventId: string = 'week-1', limit: number = 10) => {
-  const { data: topScores, isLoading, error, refetch } = useContractRead({
+  const { data: topScores, isLoading, error, refetch } = useReadContract({
     address: contractConfig.contractAddress as `0x${string}`,
     abi: contractConfig.abi,
     functionName: 'getTopScores',
     args: [BigInt(limit)],
   })
   
-  const { data: totalUsers } = useContractRead({
+  const { data: totalUsers } = useReadContract({
     address: contractConfig.contractAddress as `0x${string}`,
     abi: contractConfig.abi,
     functionName: 'getTotalUsers',
@@ -293,7 +293,7 @@ export const useEnhancedLeaderboard = (eventId: string = 'week-1', limit: number
 
 // Hook to sync all contract data to MongoDB
 export const useSyncContractToMongo = (eventId: string = 'week-1') => {
-  const { data: topScores, isLoading } = useContractRead({
+  const { data: topScores, isLoading } = useReadContract({
     address: contractConfig.contractAddress as `0x${string}`,
     abi: contractConfig.abi,
     functionName: 'getTopScores',

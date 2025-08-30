@@ -1,4 +1,4 @@
-import { useContractRead, useContractWrite, useAccount, useWatchContractEvent } from 'wagmi'
+import { useReadContract, useWriteContract, useAccount, useWatchContractEvent } from 'wagmi'
 import { parseEther } from 'viem'
 import contractConfig from '../lib/contract'
 
@@ -29,7 +29,7 @@ export interface LeaderboardEntry {
 
 // Read Hooks
 export const useGetAllScores = () => {
-  return useContractRead({
+  return useReadContract({
     address: contractConfig.contractAddress as `0x${string}`,
     abi: contractConfig.abi,
     functionName: 'getAllScoresDescending',
@@ -37,7 +37,7 @@ export const useGetAllScores = () => {
 }
 
 export const useGetMyProfile = () => {
-  return useContractRead({
+  return useReadContract({
     address: contractConfig.contractAddress as `0x${string}`,
     abi: contractConfig.abi,
     functionName: 'getMyProfile',
@@ -50,7 +50,7 @@ export const useGetMyProfile = () => {
 
 export const useGetMyScore = () => {
   const { address } = useAccount()
-  return useContractRead({
+  return useReadContract({
     address: contractConfig.contractAddress as `0x${string}`,
     abi: contractConfig.abi,
     functionName: 'getScore',
@@ -62,7 +62,7 @@ export const useGetMyScore = () => {
 }
 
 export const useGetScore = (userAddress: string) => {
-  return useContractRead({
+  return useReadContract({
     address: contractConfig.contractAddress as `0x${string}`,
     abi: contractConfig.abi,
     functionName: 'getScore',
@@ -74,7 +74,7 @@ export const useGetScore = (userAddress: string) => {
 }
 
 export const useGetTopScores = (limit: number) => {
-  return useContractRead({
+  return useReadContract({
     address: contractConfig.contractAddress as `0x${string}`,
     abi: contractConfig.abi,
     functionName: 'getTopScores',
@@ -83,7 +83,7 @@ export const useGetTopScores = (limit: number) => {
 }
 
 export const useGetTotalUsers = () => {
-  return useContractRead({
+  return useReadContract({
     address: contractConfig.contractAddress as `0x${string}`,
     abi: contractConfig.abi,
     functionName: 'getTotalUsers',
@@ -91,7 +91,7 @@ export const useGetTotalUsers = () => {
 }
 
 export const useGetUserRank = (userAddress: string) => {
-  return useContractRead({
+  return useReadContract({
     address: contractConfig.contractAddress as `0x${string}`,
     abi: contractConfig.abi,
     functionName: 'getUserRank',
@@ -103,7 +103,7 @@ export const useGetUserRank = (userAddress: string) => {
 }
 
 export const useHasProfile = (userAddress: string) => {
-  return useContractRead({
+  return useReadContract({
     address: contractConfig.contractAddress as `0x${string}`,
     abi: contractConfig.abi,
     functionName: 'hasProfile',
@@ -116,7 +116,7 @@ export const useHasProfile = (userAddress: string) => {
 
 // Write Hooks
 export const useSetScore = () => {
-  const { data, writeContract, isPending, error, isSuccess } = useContractWrite()
+  const { data, writeContract, isPending, error, isSuccess } = useWriteContract()
 
   const setScore = (score: number, username: string, fid: number, pfp: string) => {
     console.log("🔍 Attempting to save score:", score);
