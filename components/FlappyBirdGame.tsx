@@ -1,8 +1,8 @@
 "use client";
 import React, { useEffect, useRef, useState } from 'react';
 import { useSetScore, useMyGameData } from '../smartcontracthooks';
-import { useSetScoreWithMongo } from '../smartcontracthooks/useFlappyContractWithMongo';
-import { useCurrentActiveWeek } from '../smartcontracthooks/useWeeklyEvents';
+import { useSetScoreWithMongo } from '@/smartcontracthooks/useFlappyContractWithMongo';
+import { useCurrentActiveWeek } from '@/smartcontracthooks/useWeeklyEvents';
 import { useAccount, useConnect } from 'wagmi';
 import { useFrame } from './farcaster-provider';
 import RewardInfoPopup from './RewardInfoPopup';
@@ -667,8 +667,8 @@ const FlappyBirdGame: React.FC = () => {
     const handleGameOver = (finalScore: number) => {
         console.log("🔍 Game over with score:", finalScore);
         
-        // Auto-save score if conditions are met
-        if (isConnected && address && finalScore > contractScore && !isSavingScoreWithMongo && !isConfirmingTransaction && !scoreSavedWithMongo) {
+        // Auto-save score if conditions are met (allow any positive score)
+        if (isConnected && address && finalScore > 0 && !isSavingScoreWithMongo && !isConfirmingTransaction && !scoreSavedWithMongo) {
             console.log("🔍 Auto-saving score to chain ...");
             // Small delay to ensure state is updated
             setTimeout(() => {
@@ -1599,7 +1599,7 @@ const FlappyBirdGame: React.FC = () => {
                                     </div>
                                     
                                     {/* Save to Chain Button */}
-                                    {score > contractScore && !isSavingScoreWithMongo && !isConfirmingTransaction && !scoreSavedWithMongo && (
+                                    {score > 0 && !isSavingScoreWithMongo && !isConfirmingTransaction && !scoreSavedWithMongo && (
                                         <button
                                             onClick={handleSaveToChain}
                                             className="w-full py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-bold shadow-lg active:scale-95 hover:from-green-600 hover:to-emerald-700 transition-all duration-200 mb-3"
@@ -1632,11 +1632,6 @@ const FlappyBirdGame: React.FC = () => {
                                         </div>
                                     )}
                                     
-                                    {score <= contractScore && !isSavingScoreWithMongo && !isConfirmingTransaction && !scoreSavedWithMongo && (
-                                        <div className="text-center text-gray-300 py-3">
-                                            💡 Score not higher than your best ({contractScore})
-                                        </div>
-                                    )}
                                 </div>
                             ) : isClient && (
                                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6">
@@ -1710,7 +1705,7 @@ const FlappyBirdGame: React.FC = () => {
                                 </div>
                                 
                                 {/* Save to Chain Button */}
-                                {score > contractScore && !isSavingScoreWithMongo && !isConfirmingTransaction && !scoreSavedWithMongo && (
+                                {score > 0 && !isSavingScoreWithMongo && !isConfirmingTransaction && !scoreSavedWithMongo && (
                                     <button
                                         onClick={handleSaveToChain}
                                         className="w-full py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-bold shadow-lg active:scale-95 hover:from-green-600 hover:to-emerald-700 transition-all duration-200 mb-3"
@@ -1743,11 +1738,6 @@ const FlappyBirdGame: React.FC = () => {
                                     </div>
                                 )}
                                 
-                                {score <= contractScore && !isSavingScoreWithMongo && !isConfirmingTransaction && !scoreSavedWithMongo && (
-                                    <div className="text-center text-gray-500 py-3">
-                                        💡 Score not higher than your best ({contractScore})
-                                    </div>
-                                )}
                             </div>
                         ) : isClient && (
                             <div className="bg-gray-50 rounded-xl p-4 mb-4 border border-gray-200">

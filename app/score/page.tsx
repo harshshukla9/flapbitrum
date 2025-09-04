@@ -156,7 +156,7 @@ const ScorePage = () => {
           {/* Reward Pool Announcement */}
           <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-yellow-500/30">
             <div className="flex items-center justify-center space-x-2 mb-3">
-              <span className="text-3xl">💰</span>
+              <span className="text-3xl">Week-3 is live 💰</span>
               <h2 className="text-2xl md:text-3xl font-bold text-yellow-300">
                 $50 USDC Reward Pool
               </h2>
@@ -306,7 +306,7 @@ const ScorePage = () => {
           ) : (
             <div className="space-y-3">
               {leaderboard.map((entry, index) => {
-                const rank = entry.rank || index + 1;
+                const rank = index + 1;
                 const isInRewardPool = rank <= 30;
                 const isTop15 = rank <= 15;
                 
@@ -376,8 +376,8 @@ const ScorePage = () => {
                         </div>
                       </div>
                     </div>
-                    <div className={`text-2xl font-bold ${getScoreColor(entry.score)}`}>
-                      {entry.score}
+                    <div className={`text-2xl font-bold ${getScoreColor(Number(entry.score))}`}>
+                      {Number(entry.score)}
                     </div>
                   </div>
                 );

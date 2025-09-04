@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react'
 import { useAccount } from 'wagmi'
 import { useCurrentActiveWeek, useCurrentWeekLeaderboard, useUserCurrentWeekStatus, useEventStats } from '../smartcontracthooks/useWeeklyEvents'
-import { useMongoLeaderboard } from '../smartcontracthooks/useMongoLeaderboard'
 import { LeaderboardEntry } from '../types'
 
 const WeeklyTournament: React.FC = () => {
@@ -16,26 +15,20 @@ const WeeklyTournament: React.FC = () => {
   const currentWeek = currentWeekData?.currentWeek
 
   // Get current week leaderboard
-  const { data: leaderboardData, isLoading: leaderboardLoading, error, refetch } = useCurrentWeekLeaderboard(
-    currentWeek?.eventId || 'week-2', 
-    100
-  )
+  const { data: leaderboardData, isLoading: leaderboardLoading, error, refetch } = useCurrentWeekLeaderboard()
 
   // Get user's current week status
-  const { data: userStatusData, isLoading: userStatusLoading } = useUserCurrentWeekStatus(
-    currentWeek?.eventId || 'week-2'
-  )
+  const { data: userStatusData, isLoading: userStatusLoading } = useUserCurrentWeekStatus()
 
   // Get event statistics
-  const { data: eventStatsData, isLoading: statsLoading } = useEventStats(
-    currentWeek?.eventId || 'week-2'
-  )
+  const { data: eventStatsData, isLoading: statsLoading } = useEventStats()
 
   useEffect(() => {
     setIsClient(true)
     
     // Show new week announcement if this is a fresh week
-    if (currentWeek && eventStatsData?.stats?.totalParticipants === 0) {
+    const totalParticipants = (eventStatsData as any)?.stats?.totalParticipants
+    if (currentWeek && typeof totalParticipants === 'number' && totalParticipants === 0) {
       setShowNewWeekAnnouncement(true)
       setTimeout(() => setShowNewWeekAnnouncement(false), 5000)
     }
@@ -163,15 +156,15 @@ const WeeklyTournament: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div className="bg-white/10 rounded-xl p-3">
                   <div className="text-sm text-green-300 mb-1">Start Date</div>
-                  <div className="text-white font-semibold">{formatDate(currentWeek.startDate.toString())}</div>
+                  <div className="text-white font-semibold">{currentWeek?.startDate ? formatDate(currentWeek.startDate.toString()) : '-'}</div>
                 </div>
                 <div className="bg-white/10 rounded-xl p-3">
                   <div className="text-sm text-green-300 mb-1">End Date</div>
-                  <div className="text-white font-semibold">{formatDate(currentWeek.endDate.toString())}</div>
+                  <div className="text-white font-semibold">{currentWeek?.endDate ? formatDate(currentWeek.endDate.toString()) : '-'}</div>
                 </div>
                 <div className="bg-white/10 rounded-xl p-3">
                   <div className="text-sm text-green-300 mb-1">Prize Pool</div>
-                  <div className="text-white font-semibold">${currentWeek.totalPrizePool} USDC</div>
+                  <div className="text-white font-semibold">${currentWeek?.totalPrizePool ?? 50} USDC</div>
                 </div>
               </div>
               
@@ -207,32 +200,32 @@ const WeeklyTournament: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="text-center">
                 <div className="text-3xl font-bold text-white mb-2">
-                  {userStatusLoading ? '...' : userStatusData?.userStats?.currentScore || 0}
+                  {userStatusLoading ? '...' : (userStatusData as any)?.userStats?.currentScore || 0}
                 </div>
                 <div className="text-gray-300">Current Score</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-white mb-2">
-                  {userStatusLoading ? '...' : userStatusData?.userStats?.rank || 'N/A'}
+                  {userStatusLoading ? '...' : (userStatusData as any)?.userStats?.rank || 'N/A'}
                 </div>
                 <div className="text-gray-300">Current Rank</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-white mb-2">
-                  {userStatusLoading ? '...' : userStatusData?.hasParticipated ? '✅' : '❌'}
+                  {userStatusLoading ? '...' : (userStatusData as any)?.hasParticipated ? '✅' : '❌'}
                 </div>
                 <div className="text-gray-300">Has Participated</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-white mb-2">
-                  {statsLoading ? '...' : eventStatsData?.stats?.totalParticipants || 0}
+                  {statsLoading ? '...' : (eventStatsData as any)?.stats?.totalParticipants || 0}
                 </div>
                 <div className="text-gray-300">Total Participants</div>
               </div>
             </div>
             
             {/* Fresh Start Encouragement */}
-            {!userStatusData?.hasParticipated && (
+            {!((userStatusData as any)?.hasParticipated) && (
               <div className="mt-4 text-center">
                 <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl p-4 border border-blue-500/30">
                   <p className="text-blue-200 font-semibold">
@@ -272,7 +265,7 @@ const WeeklyTournament: React.FC = () => {
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
             </div>
-          ) : !leaderboardData?.leaderboard || leaderboardData.leaderboard.length === 0 ? (
+          ) : !(leaderboardData as any)?.leaderboard || (leaderboardData as any).leaderboard.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">🎯</div>
               <h3 className="text-xl font-semibold text-white mb-2">Tournament Just Started!</h3>
@@ -295,7 +288,7 @@ const WeeklyTournament: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {leaderboardData.leaderboard.map((entry: LeaderboardEntry, index: number) => {
+              {(leaderboardData as any).leaderboard.map((entry: LeaderboardEntry, index: number) => {
                 const rank = entry.rank || index + 1;
                 const isInRewardPool = rank <= 30;
                 const isTop15 = rank <= 15;

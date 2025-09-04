@@ -20,7 +20,7 @@ base-farcaster/
 │   ├── api/                      # API Routes
 │   │   ├── send-notification/    # Notification sending endpoint
 │   │   │   └── route.ts
-│   │   └── webhook/              # Farcaster webhook handler
+│   │   └── send-notification/    # Notification sending endpoint
 │   │       └── route.ts
 │   ├── favicon.ico
 │   ├── globals.css               # Global styles
@@ -147,13 +147,6 @@ The main game component featuring:
 - Rate limiting support
 
 ## 🔧 API Endpoints
-
-### POST /api/webhook
-Handles Farcaster webhook events:
-- `frame_added`: User adds the frame
-- `frame_removed`: User removes the frame  
-- `notifications_enabled`: User enables notifications
-- `notifications_disabled`: User disables notifications
 
 ### POST /api/send-notification
 Sends test notifications to users with proper validation and error handling.

@@ -1,10 +1,10 @@
 'use client'
 
 import React from 'react'
-import UnifiedMongoLeaderboard from '../../components/UnifiedMongoLeaderboard'
+import UnifiedLeaderboard from '../../components/UnifiedLeaderboard'
 
 const UnifiedLeaderboardPage = () => {
-  return <UnifiedMongoLeaderboard />
+  return <UnifiedLeaderboard />
 }
 
 export default UnifiedLeaderboardPage

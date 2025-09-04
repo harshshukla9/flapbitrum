@@ -1,195 +1,166 @@
-import { useReadContract, useWriteContract, useAccount, useWatchContractEvent } from 'wagmi'
-import { parseEther } from 'viem'
-import contractConfig from '../lib/contract'
+"use client"
 
-export interface UserScore {
+import { useCallback, useEffect, useState } from 'react'
+import { useAccount, useWalletClient } from 'wagmi'
+import { createPublicClient, http } from 'viem'
+import { arbitrum } from 'viem/chains'
+import contractConfig from '@/lib/contract'
+
+type LeaderboardEntry = {
   user: string
+  username: string
+  fid: bigint
+  pfp: string
   score: bigint
-  username?: string
-  fid?: bigint
-  pfp?: string
 }
 
-export interface UserProfile {
-  user: string
-  score: bigint
-  username?: string
-  fid?: bigint
-  pfp?: string
-}
+const publicClient = createPublicClient({
+  chain: arbitrum,
+  transport: http(),
+})
 
-export interface LeaderboardEntry {
-  user: string
-  score: number
-  rank?: number
-  username?: string
-  fid?: number
-  pfp?: string
-}
+export function useLeaderboard(limit: number = 100) {
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [totalUsers, setTotalUsers] = useState<number>(0)
 
-// Read Hooks
-export const useGetAllScores = () => {
-  return useReadContract({
-    address: contractConfig.contractAddress as `0x${string}`,
-    abi: contractConfig.abi,
-    functionName: 'getAllScoresDescending',
-  })
-}
+  const contractAddress = contractConfig.contractAddress as `0x${string}`
+  const abi = contractConfig.abi
 
-export const useGetMyProfile = () => {
-  return useReadContract({
-    address: contractConfig.contractAddress as `0x${string}`,
-    abi: contractConfig.abi,
-    functionName: 'getMyProfile',
-  }) as {
-    data: UserProfile | undefined
-    isLoading: boolean
-    error: any
-  }
-}
-
-export const useGetMyScore = () => {
-  const { address } = useAccount()
-  return useReadContract({
-    address: contractConfig.contractAddress as `0x${string}`,
-    abi: contractConfig.abi,
-    functionName: 'getScore',
-    args: [address as `0x${string}`],
-    query: {
-      enabled: !!address,
-    },
-  })
-}
-
-export const useGetScore = (userAddress: string) => {
-  return useReadContract({
-    address: contractConfig.contractAddress as `0x${string}`,
-    abi: contractConfig.abi,
-    functionName: 'getScore',
-    args: [userAddress as `0x${string}`],
-    query: {
-      enabled: !!userAddress,
-    },
-  })
-}
-
-export const useGetTopScores = (limit: number) => {
-  return useReadContract({
-    address: contractConfig.contractAddress as `0x${string}`,
-    abi: contractConfig.abi,
-    functionName: 'getTopScores',
-    args: [BigInt(limit)],
-  })
-}
-
-export const useGetTotalUsers = () => {
-  return useReadContract({
-    address: contractConfig.contractAddress as `0x${string}`,
-    abi: contractConfig.abi,
-    functionName: 'getTotalUsers',
-  })
-}
-
-export const useGetUserRank = (userAddress: string) => {
-  return useReadContract({
-    address: contractConfig.contractAddress as `0x${string}`,
-    abi: contractConfig.abi,
-    functionName: 'getUserRank',
-    args: [userAddress as `0x${string}`],
-    query: {
-      enabled: !!userAddress,
-    },
-  })
-}
-
-export const useHasProfile = (userAddress: string) => {
-  return useReadContract({
-    address: contractConfig.contractAddress as `0x${string}`,
-    abi: contractConfig.abi,
-    functionName: 'hasProfile',
-    args: [userAddress as `0x${string}`],
-    query: {
-      enabled: !!userAddress,
-    },
-  })
-}
-
-// Write Hooks
-export const useSetScore = () => {
-  const { data, writeContract, isPending, error, isSuccess } = useWriteContract()
-
-  const setScore = (score: number, username: string, fid: number, pfp: string) => {
-    console.log("🔍 Attempting to save score:", score);
-    console.log("🔍 Username:", username);
-    console.log("🔍 FID:", fid);
-    console.log("🔍 PFP:", pfp);
-    console.log("🔍 Contract address:", contractConfig.contractAddress);
-    
+  const fetchData = useCallback(async () => {
+    setIsLoading(true)
+    setError(null)
     try {
-      writeContract({
-        address: contractConfig.contractAddress as `0x${string}`,
-        abi: contractConfig.abi,
-        functionName: 'setScore',
-        args: [BigInt(score), username, BigInt(fid), pfp],
-      })
-      console.log("🔍 Write contract called successfully");
-    } catch (err) {
-      console.error("🔍 Error calling writeContract:", err);
-    }
-  }
+      const [scores, total] = await Promise.all([
+        publicClient.readContract({
+          address: contractAddress,
+          abi,
+          functionName: 'getTopScores',
+          args: [BigInt(limit)],
+        }) as Promise<any[]>,
+        publicClient.readContract({
+          address: contractAddress,
+          abi,
+          functionName: 'getTotalUsers',
+        }) as Promise<bigint>,
+      ])
 
-  return {
-    setScore,
-    isPending,
-    isConfirming: isPending,
-    isSuccess,
-    error,
-    hash: data,
-  }
-}
-
-// Utility hook for leaderboard data
-export const useLeaderboard = (limit: number = 10) => {
-  const { data: topScores, isLoading, error, refetch } = useGetTopScores(limit)
-  const { data: totalUsers } = useGetTotalUsers()
-
-  console.log("🔍 Leaderboard data:", { topScores, totalUsers, error });
-
-  const leaderboardData: LeaderboardEntry[] = Array.isArray(topScores) 
-    ? topScores.map((entry: any, index: number) => ({
-        user: entry.user,
-        score: Number(entry.score),
-        rank: index + 1,
-        username: entry.username,
-        fid: entry.fid ? Number(entry.fid) : undefined,
-        pfp: entry.pfp,
+      const normalized: LeaderboardEntry[] = (scores || []).map((d: any) => ({
+        user: d.user as string,
+        username: (d.username as string) || '',
+        fid: BigInt(d.fid ?? 0),
+        pfp: (d.pfp as string) || '',
+        score: BigInt(d.score ?? 0),
       }))
-    : []
 
-  return {
-    leaderboard: leaderboardData,
-    isLoading,
-    error,
-    refetch,
-    totalUsers: totalUsers ? Number(totalUsers) : 0,
-  }
+      setLeaderboard(normalized)
+      setTotalUsers(Number(total))
+    } catch (e: any) {
+      setError(e?.message || 'Failed to fetch leaderboard')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [contractAddress, abi, limit])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  return { leaderboard, isLoading, error, refetch: fetchData, totalUsers }
 }
 
-// Hook for current user's game data
-export const useMyGameData = () => {
+export function useMyGameData() {
   const { address } = useAccount()
-  const { data: myProfile, isLoading: profileLoading } = useGetMyProfile()
-  const { data: myRank, isLoading: rankLoading } = useGetUserRank(address || '')
-  const { data: hasProfile } = useHasProfile(address || '')
+  const [myScore, setMyScore] = useState<number>(0)
+  const [myRank, setMyRank] = useState<number | null>(null)
+  const [hasScore, setHasScore] = useState<boolean>(false)
+  const [username, setUsername] = useState<string>('')
+  const [fid, setFid] = useState<number>(0)
+  const [pfp, setPfp] = useState<string>('')
+  const [isLoading, setIsLoading] = useState<boolean>(false)
 
-  return {
-    myScore: (myProfile as UserProfile)?.score ? Number((myProfile as UserProfile).score) : 0,
-    myRank: myRank ? Number(myRank) : 0,
-    hasScore: hasProfile || false,
-    isLoading: profileLoading || rankLoading,
-    address,
-    username: (myProfile as UserProfile)?.username,
-    fid: (myProfile as UserProfile)?.fid ? Number((myProfile as UserProfile).fid) : undefined,
-    pfp: (myProfile as UserProfile)?.pfp,
-  }
+  const contractAddress = contractConfig.contractAddress as `0x${string}`
+  const abi = contractConfig.abi
+
+  const load = useCallback(async () => {
+    if (!address) return
+    setIsLoading(true)
+    try {
+      const data = (await publicClient.readContract({
+        address: contractAddress,
+        abi,
+        functionName: 'getUserProfile',
+        args: [address],
+      })) as any
+
+      const rank = (await publicClient.readContract({
+        address: contractAddress,
+        abi,
+        functionName: 'getUserRank',
+        args: [address],
+      })) as bigint
+
+      setUsername((data?.username as string) || '')
+      setFid(Number(data?.fid ?? 0))
+      setPfp((data?.pfp as string) || '')
+      const scoreNum = Number(data?.score ?? 0)
+      setMyScore(scoreNum)
+      setHasScore(scoreNum > 0)
+      setMyRank(Number(rank))
+    } catch {
+      // ignore
+    } finally {
+      setIsLoading(false)
+    }
+  }, [address, contractAddress, abi])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  return { myScore, myRank, hasScore, isLoading, username, fid, pfp }
 }
+
+export function useSetScore() {
+  const { data: walletClient } = useWalletClient()
+  const { address } = useAccount()
+  const [isPending, setIsPending] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
+
+  const contractAddress = contractConfig.contractAddress as `0x${string}`
+  const abi = contractConfig.abi
+
+  const setScore = useCallback(
+    async (score: number, username: string, fid: number, pfp: string) => {
+      if (!walletClient || !address) throw new Error('Wallet not connected')
+      setIsPending(true)
+      setIsSuccess(false)
+      try {
+        const hasProfile = (await publicClient.readContract({
+          address: contractAddress,
+          abi,
+          functionName: 'hasProfile',
+          args: [address],
+        })) as boolean
+
+        const hash = await walletClient.writeContract({
+          address: contractAddress,
+          abi,
+          functionName: hasProfile ? 'addScore' : 'setScore',
+          args: hasProfile ? [BigInt(score)] : [BigInt(score), username, BigInt(fid), pfp],
+        })
+
+        await publicClient.waitForTransactionReceipt({ hash })
+        setIsSuccess(true)
+      } finally {
+        setIsPending(false)
+      }
+    },
+    [walletClient, address, contractAddress, abi]
+  )
+
+  return { setScore, isPending, isSuccess }
+}
+
+
