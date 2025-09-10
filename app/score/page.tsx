@@ -33,28 +33,30 @@ const ScorePage = () => {
 
   // Countdown timer using Unix timestamp 1756441969 as end date
   useEffect(() => {
-    // Convert Unix timestamp to Date object
-    const endDate = new Date(1756441969 * 1000) // Convert seconds to milliseconds
-
+    // Set endDate to 7 days from now
+    const endDate = new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000)
+  
     const updateTimer = () => {
       const now = new Date().getTime()
       const distance = endDate.getTime() - now
-
+  
       if (distance > 0) {
         const days = Math.floor(distance / (1000 * 60 * 60 * 24))
         const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
         const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
         const seconds = Math.floor((distance % (1000 * 60)) / 1000)
-
+  
         setTimeLeft({ days, hours, minutes, seconds })
       } else {
+        // Countdown finished
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 })
+        clearInterval(timer) // stop updating
       }
     }
-
+  
     updateTimer()
     const timer = setInterval(updateTimer, 1000)
-
+  
     return () => clearInterval(timer)
   }, [])
 
