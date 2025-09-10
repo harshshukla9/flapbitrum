@@ -78,9 +78,70 @@ function startGameLogic(
         const pipeX = boardWidth;
         const pipeY = 0;
 
-        // coins
+        // coins and power-ups
         let coinArray: any[] = [];
+        let powerUpArray: any[] = [];
         const coinSize = 24;
+        const powerUpSize = 28;
+        
+        // Power-up types with different effects
+        const powerUpTypes = [
+            { 
+                type: 'shield', 
+                color: '#FFD700', 
+                secondaryColor: '#FFA500',
+                chance: 0.08, 
+                effect: 'protection',
+                duration: 15000, // 15 seconds of protection
+                symbol: '🛡️',
+                points: 5
+            },
+            { 
+                type: 'speed', 
+                color: '#00FF00', 
+                secondaryColor: '#32CD32',
+                chance: 0.06, 
+                effect: 'speedBoost',
+                duration: 8000, // 8 seconds
+                symbol: '⚡',
+                points: 3
+            },
+            { 
+                type: 'multiplier', 
+                color: '#FF00FF', 
+                secondaryColor: '#DA70D6',
+                chance: 0.04, 
+                effect: '2xScore',
+                duration: 10000, // 10 seconds
+                symbol: '✨',
+                points: 8
+            },
+            { 
+                type: 'diamond', 
+                color: '#00FFFF', 
+                secondaryColor: '#87CEEB',
+                chance: 0.02, 
+                effect: 'bonus',
+                duration: 0, // Instant effect
+                symbol: '💎',
+                points: 15
+            }
+        ];
+        
+        // Active power-up effects
+        let activePowerUps = {
+            shield: { active: false, endTime: 0 },
+            speedBoost: { active: false, endTime: 0 },
+            scoreMultiplier: { active: false, endTime: 0, multiplier: 2 }
+        };
+
+        // Power-up notification system
+        let powerUpNotifications: Array<{
+            type: any;
+            startTime: number;
+            duration: number;
+            points: number;
+        }> = [];
 
         // Global audio context for better reliability
         let audioContext: AudioContext | null = null;
@@ -106,7 +167,7 @@ function startGameLogic(
         };
 
         // Reliable sound playing function
-        const playSound = (type: 'coin' | 'crash' | 'oops' | 'whoosh' | 'countdown' | 'go') => {
+        const playSound = (type: 'coin' | 'crash' | 'oops' | 'whoosh' | 'countdown' | 'go' | 'powerup' | 'shield') => {
             if (!audioContext || audioContext.state !== 'running') {
                 initializeAudio();
                 if (!audioContext) return;
@@ -181,6 +242,28 @@ function startGameLogic(
                         oscillator.start(audioContext.currentTime);
                         oscillator.stop(audioContext.currentTime + 0.3);
                         break;
+                        
+                    case 'powerup':
+                        oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+                        oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+                        oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
+                        oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.3);
+                        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+                        oscillator.type = 'sine';
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.4);
+                        break;
+                        
+                    case 'shield':
+                        oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
+                        oscillator.frequency.setValueAtTime(500, audioContext.currentTime + 0.15);
+                        gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                        oscillator.type = 'triangle';
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.3);
+                        break;
                 }
             } catch (e) {
                 console.log("Sound playback failed:", e);
@@ -194,6 +277,134 @@ function startGameLogic(
         const playWhooshSound = () => playSound('whoosh');
         const playCountdownSound = () => playSound('countdown');
         const playGoSound = () => playSound('go');
+        const playPowerUpSound = () => playSound('powerup');
+        const playShieldSound = () => playSound('shield');
+
+        // Function to add power-up notification
+        const addPowerUpNotification = (powerUpType: any, points: number) => {
+            powerUpNotifications.push({
+                type: powerUpType,
+                startTime: Date.now(),
+                duration: 3000, // 3 seconds
+                points: points
+            });
+        };
+
+        // Function to draw power-up notifications
+        const drawPowerUpNotifications = (ctx: CanvasRenderingContext2D, currentTime: number) => {
+            // Remove expired notifications
+            powerUpNotifications = powerUpNotifications.filter(notification => 
+                currentTime - notification.startTime < notification.duration
+            );
+
+            // Draw active notifications
+            powerUpNotifications.forEach((notification, index) => {
+                const elapsed = currentTime - notification.startTime;
+                const progress = elapsed / notification.duration;
+                const alpha = Math.max(0, 1 - progress); // Fade out over time
+                
+                // Position notifications stacked vertically
+                const notificationX = boardWidth / 2;
+                const notificationY = 100 + (index * 80);
+                const notificationWidth = 280;
+                const notificationHeight = 70;
+                
+                // Draw notification background with fade
+                ctx.globalAlpha = alpha * 0.9;
+                const gradient = ctx.createLinearGradient(
+                    notificationX - notificationWidth/2, notificationY - notificationHeight/2,
+                    notificationX + notificationWidth/2, notificationY + notificationHeight/2
+                );
+                gradient.addColorStop(0, notification.type.color + '40');
+                gradient.addColorStop(0.5, notification.type.secondaryColor + '60');
+                gradient.addColorStop(1, notification.type.color + '40');
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(
+                    notificationX - notificationWidth/2, 
+                    notificationY - notificationHeight/2,
+                    notificationWidth, 
+                    notificationHeight
+                );
+                
+                // Draw border
+                ctx.strokeStyle = notification.type.color;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(
+                    notificationX - notificationWidth/2, 
+                    notificationY - notificationHeight/2,
+                    notificationWidth, 
+                    notificationHeight
+                );
+                
+                // Draw power-up icon
+                ctx.globalAlpha = alpha;
+                ctx.font = 'bold 24px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillText(
+                    notification.type.symbol, 
+                    notificationX - notificationWidth/2 + 30, 
+                    notificationY - 5
+                );
+                
+                // Draw power-up name and effect
+                ctx.font = 'bold 16px Arial';
+                ctx.fillStyle = '#FFFFFF';
+                ctx.textAlign = 'left';
+                
+                let powerUpName = '';
+                let effectText = '';
+                
+                switch (notification.type.effect) {
+                    case 'protection':
+                        powerUpName = 'SHIELD ACTIVATED!';
+                        effectText = 'Protects from collisions for 15s';
+                        break;
+                    case 'speedBoost':
+                        powerUpName = 'SPEED BOOST!';
+                        effectText = 'Reduced gravity for 8 seconds';
+                        break;
+                    case '2xScore':
+                        powerUpName = 'SCORE MULTIPLIER!';
+                        effectText = '2X points for 10 seconds';
+                        break;
+                    case 'bonus':
+                        powerUpName = 'RARE DIAMOND!';
+                        effectText = 'High value bonus points';
+                        break;
+                }
+                
+                ctx.fillText(
+                    powerUpName, 
+                    notificationX - notificationWidth/2 + 60, 
+                    notificationY - 15
+                );
+                
+                // Draw effect description
+                ctx.font = '12px Arial';
+                ctx.fillStyle = '#E0E0E0';
+                ctx.fillText(
+                    effectText, 
+                    notificationX - notificationWidth/2 + 60, 
+                    notificationY + 5
+                );
+                
+                // Draw points gained
+                ctx.font = 'bold 14px Arial';
+                ctx.fillStyle = '#FFD700';
+                ctx.textAlign = 'right';
+                ctx.fillText(
+                    `+${notification.points} pts`, 
+                    notificationX + notificationWidth/2 - 10, 
+                    notificationY
+                );
+                
+                // Reset alpha
+                ctx.globalAlpha = 1;
+            });
+        };
 
         // Draw coin function
         const drawCoin = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
@@ -230,6 +441,59 @@ function startGameLogic(
             ctx.arc(x + 3*size/4, y + size/4, 1, 0, 2 * Math.PI);
             ctx.fill();
             ctx.globalAlpha = 1;
+        };
+
+        // Draw power-up function
+        const drawPowerUp = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number, powerUpType: any, animationFrame: number) => {
+            // Create animated glow effect
+            const glowRadius = size/2 + Math.sin(animationFrame * 0.1) * 3;
+            const gradient = ctx.createRadialGradient(x + size/2, y + size/2, 0, x + size/2, y + size/2, glowRadius);
+            gradient.addColorStop(0, powerUpType.color);
+            gradient.addColorStop(0.7, powerUpType.secondaryColor);
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            
+            // Draw glow
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(x + size/2, y + size/2, glowRadius, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Draw main power-up body
+            const mainGradient = ctx.createRadialGradient(x + size/2, y + size/2, 0, x + size/2, y + size/2, size/2);
+            mainGradient.addColorStop(0, powerUpType.color);
+            mainGradient.addColorStop(0.6, powerUpType.secondaryColor);
+            mainGradient.addColorStop(1, powerUpType.color);
+            
+            ctx.fillStyle = mainGradient;
+            ctx.beginPath();
+            ctx.arc(x + size/2, y + size/2, size/2, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Add pulsing inner circle
+            const pulseSize = size/3 + Math.sin(animationFrame * 0.15) * 2;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.beginPath();
+            ctx.arc(x + size/2, y + size/2, pulseSize, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Draw symbol
+            ctx.fillStyle = '#000000';
+            ctx.font = `bold ${size/2}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(powerUpType.symbol, x + size/2, y + size/2);
+            
+            // Add sparkle particles around power-up
+            for (let i = 0; i < 3; i++) {
+                const angle = (animationFrame * 0.05 + i * Math.PI * 2 / 3);
+                const sparkleX = x + size/2 + Math.cos(angle) * (size/2 + 10);
+                const sparkleY = y + size/2 + Math.sin(angle) * (size/2 + 10);
+                
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.beginPath();
+                ctx.arc(sparkleX, sparkleY, 1.5, 0, 2 * Math.PI);
+                ctx.fill();
+            }
         };
 
         const birdImg = new Image();
@@ -357,7 +621,8 @@ function startGameLogic(
                     
                     // Coin collected!
                     playCoinSound();
-                    score += coinScoreMultiplier; // +1 point for coin (same for all levels)
+                    const points = coinScoreMultiplier * (activePowerUps.scoreMultiplier.active ? activePowerUps.scoreMultiplier.multiplier : 1);
+                    score += points;
                     setScore(score);
                     coinArray.splice(i, 1); // Remove coin
                 }
@@ -365,6 +630,84 @@ function startGameLogic(
                 // Remove coins that are off screen
                 if (coin.x + coinSize < 0) {
                     coinArray.splice(i, 1);
+                }
+            }
+
+            // Update power-up effects
+            const currentTime = Date.now();
+            
+            // Check shield expiration
+            if (activePowerUps.shield.active && currentTime > activePowerUps.shield.endTime) {
+                activePowerUps.shield.active = false;
+            }
+            
+            // Check speed boost expiration
+            if (activePowerUps.speedBoost.active && currentTime > activePowerUps.speedBoost.endTime) {
+                activePowerUps.speedBoost.active = false;
+                gravity = 0.3 + (difficultyMultiplier - 1) * 0.05; // Reset to normal gravity
+            }
+            
+            // Check score multiplier expiration
+            if (activePowerUps.scoreMultiplier.active && currentTime > activePowerUps.scoreMultiplier.endTime) {
+                activePowerUps.scoreMultiplier.active = false;
+            }
+
+            // Update and draw power-ups
+            for (let i = powerUpArray.length - 1; i >= 0; i--) {
+                const powerUp = powerUpArray[i];
+                powerUp.x += velocityX;
+                
+                // Draw power-up with animation
+                drawPowerUp(context, powerUp.x, powerUp.y, powerUpSize, powerUp.type, currentTime);
+                
+                // Check collision with bird
+                if (bird.x < powerUp.x + powerUpSize &&
+                    bird.x + bird.width > powerUp.x &&
+                    bird.y < powerUp.y + powerUpSize &&
+                    bird.y + bird.height > powerUp.y) {
+                    
+                    // Power-up collected!
+                    const powerUpType = powerUp.type;
+                    
+                    // Calculate points (before applying new multiplier)
+                    const points = powerUpType.points * (activePowerUps.scoreMultiplier.active ? activePowerUps.scoreMultiplier.multiplier : 1);
+                    
+                    // Apply power-up effect
+                    switch (powerUpType.effect) {
+                        case 'protection':
+                            activePowerUps.shield.active = true;
+                            activePowerUps.shield.endTime = currentTime + powerUpType.duration;
+                            playShieldSound();
+                            break;
+                        case 'speedBoost':
+                            activePowerUps.speedBoost.active = true;
+                            activePowerUps.speedBoost.endTime = currentTime + powerUpType.duration;
+                            gravity = 0.15; // Reduced gravity for easier control
+                            playPowerUpSound();
+                            break;
+                        case '2xScore':
+                            activePowerUps.scoreMultiplier.active = true;
+                            activePowerUps.scoreMultiplier.endTime = currentTime + powerUpType.duration;
+                            activePowerUps.scoreMultiplier.multiplier = 2;
+                            playPowerUpSound();
+                            break;
+                        case 'bonus':
+                            playPowerUpSound();
+                            break;
+                    }
+                    
+                    // Add notification
+                    addPowerUpNotification(powerUpType, points);
+                    
+                    // Add points for collecting power-up
+                    score += points;
+                    setScore(score);
+                    powerUpArray.splice(i, 1); // Remove power-up
+                }
+                
+                // Remove power-ups that are off screen
+                if (powerUp.x + powerUpSize < 0) {
+                    powerUpArray.splice(i, 1);
                 }
             }
 
@@ -380,14 +723,16 @@ function startGameLogic(
                     if (pipe.isTopPipe) {
                         const bottomPipeIndex = i + 1;
                         if (pipeArray[bottomPipeIndex] && pipeArray[bottomPipeIndex].passed) {
-                            score += pipeScoreMultiplier;
+                            const points = pipeScoreMultiplier * (activePowerUps.scoreMultiplier.active ? activePowerUps.scoreMultiplier.multiplier : 1);
+                            score += points;
                             setScore(score);
                             playWhooshSound(); // Play whoosh sound for successful pipe pass
                         }
                     } else {
                         const topPipeIndex = i - 1;
                         if (pipeArray[topPipeIndex] && pipeArray[topPipeIndex].passed) {
-                            score += pipeScoreMultiplier;
+                            const points = pipeScoreMultiplier * (activePowerUps.scoreMultiplier.active ? activePowerUps.scoreMultiplier.multiplier : 1);
+                            score += points;
                             setScore(score);
                             playWhooshSound(); // Play whoosh sound for successful pipe pass
                         }
@@ -395,24 +740,138 @@ function startGameLogic(
                 }
 
                 if (detectCollision(bird, pipe)) {
-                    playCrashSound(); // Play bomb sound when hitting pipe
-                    setGameOver(true);
-                    gameOverRef.current = true;
-                    if (onGameOver) onGameOver(score);
-                    context.clearRect(0, 0, canvas.width, canvas.height);
-                    context.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-                    context.font = "bold 48px serif";
-                    context.fillStyle = "#28A0F0";
-                    context.textAlign = "center";
-                    context.fillText("Game Over", canvas.width / 2, canvas.height / 2);
-                    context.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 + 50);
-                    return;
+                    if (activePowerUps.shield.active) {
+                        // Shield protects from collision
+                        playShieldSound();
+                        
+                        // Visual feedback for shield activation
+                        context.fillStyle = "rgba(255, 215, 0, 0.5)";
+                        context.fillRect(0, 0, canvas.width, canvas.height);
+                    } else {
+                        playCrashSound(); // Play bomb sound when hitting pipe
+                        setGameOver(true);
+                        gameOverRef.current = true;
+                        if (onGameOver) onGameOver(score);
+                        context.clearRect(0, 0, canvas.width, canvas.height);
+                        context.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+                        context.font = "bold 48px serif";
+                        context.fillStyle = "#28A0F0";
+                        context.textAlign = "center";
+                        context.fillText("Game Over", canvas.width / 2, canvas.height / 2);
+                        context.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 + 50);
+                        return;
+                    }
                 }
             }
 
             while (pipeArray.length > 0 && pipeArray[0].x < -pipeWidth) {
                 pipeArray.shift();
             }
+
+            // Draw active power-up indicators in center of screen with transparent design
+            const activePowerUpsArray = [];
+            
+            // Collect active power-ups
+            if (activePowerUps.shield.active) {
+                const timeLeft = Math.max(0, activePowerUps.shield.endTime - currentTime);
+                const progress = timeLeft / 15000;
+                const secondsLeft = Math.ceil(timeLeft / 1000);
+                activePowerUpsArray.push({
+                    type: 'shield',
+                    icon: '🛡️',
+                    color: '#FFD700',
+                    secondaryColor: '#FFA500',
+                    progress: progress,
+                    secondsLeft: secondsLeft,
+                    text: `${secondsLeft}s`
+                });
+            }
+            
+            if (activePowerUps.speedBoost.active) {
+                const timeLeft = Math.max(0, activePowerUps.speedBoost.endTime - currentTime);
+                const progress = timeLeft / 8000;
+                const secondsLeft = Math.ceil(timeLeft / 1000);
+                activePowerUpsArray.push({
+                    type: 'speed',
+                    icon: '⚡',
+                    color: '#00FF00',
+                    secondaryColor: '#32CD32',
+                    progress: progress,
+                    secondsLeft: secondsLeft,
+                    text: `${secondsLeft}s`
+                });
+            }
+            
+            if (activePowerUps.scoreMultiplier.active) {
+                const timeLeft = Math.max(0, activePowerUps.scoreMultiplier.endTime - currentTime);
+                const progress = timeLeft / 10000;
+                const secondsLeft = Math.ceil(timeLeft / 1000);
+                activePowerUpsArray.push({
+                    type: 'multiplier',
+                    icon: '✨',
+                    color: '#FF00FF',
+                    secondaryColor: '#DA70D6',
+                    progress: progress,
+                    secondsLeft: secondsLeft,
+                    text: `2X ${secondsLeft}s`
+                });
+            }
+            
+            // Draw power-up indicators in center-top area
+            if (activePowerUpsArray.length > 0) {
+                const centerX = boardWidth / 2;
+                const startY = 60; // Below score area but visible
+                const indicatorWidth = 100;
+                const indicatorHeight = 20;
+                const spacing = 5;
+                
+                activePowerUpsArray.forEach((powerUp, index) => {
+                    const y = startY + index * (indicatorHeight + spacing);
+                    
+                    // Draw semi-transparent background
+                    context.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                    context.fillRect(centerX - indicatorWidth/2, y, indicatorWidth, indicatorHeight);
+                    
+                    // Draw progress bar background
+                    context.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                    context.fillRect(centerX - indicatorWidth/2 + 2, y + 2, indicatorWidth - 4, indicatorHeight - 4);
+                    
+                    // Draw progress bar fill
+                    const fillWidth = (indicatorWidth - 4) * powerUp.progress;
+                    const gradient = context.createLinearGradient(
+                        centerX - indicatorWidth/2 + 2, y + 2,
+                        centerX - indicatorWidth/2 + 2 + fillWidth, y + 2
+                    );
+                    gradient.addColorStop(0, powerUp.color + '80'); // 50% opacity
+                    gradient.addColorStop(1, powerUp.secondaryColor + '80');
+                    context.fillStyle = gradient;
+                    context.fillRect(centerX - indicatorWidth/2 + 2, y + 2, fillWidth, indicatorHeight - 4);
+                    
+                    // Draw icon
+                    context.font = 'bold 14px Arial';
+                    context.textAlign = 'left';
+                    context.textBaseline = 'middle';
+                    context.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                    context.fillText(powerUp.icon, centerX - indicatorWidth/2 + 6, y + indicatorHeight/2);
+                    
+                    // Draw countdown text
+                    context.font = 'bold 12px Arial';
+                    context.textAlign = 'right';
+                    context.fillStyle = powerUp.color;
+                    context.fillText(powerUp.text, centerX + indicatorWidth/2 - 6, y + indicatorHeight/2);
+                    
+                    // Add subtle glow effect
+                    context.shadowColor = powerUp.color;
+                    context.shadowBlur = 3;
+                    context.strokeStyle = powerUp.color + '60';
+                    context.lineWidth = 1;
+                    context.strokeRect(centerX - indicatorWidth/2, y, indicatorWidth, indicatorHeight);
+                    context.shadowBlur = 0; // Reset shadow
+                });
+            }
+
+            // Draw power-up notifications
+            drawPowerUpNotifications(context, currentTime);
 
             requestAnimationFrame(update);
         };
@@ -461,6 +920,34 @@ function startGameLogic(
                     size: coinSize
                 });
             }
+
+            // Add power-ups (lower chance than coins)
+            // Check each power-up type independently
+            for (const powerUpType of powerUpTypes) {
+                const adjustedChance = powerUpType.chance * (1 + (difficultyMultiplier - 1) * 0.5); // Slightly increase with difficulty
+                if (Math.random() < adjustedChance) {
+                    // Position power-up randomly in the opening or slightly outside pipes
+                    const powerUpX = pipeX + pipeWidth + Math.random() * 100; // Offset from pipe
+                    let powerUpY;
+                    
+                    // 70% chance to spawn in the safe opening, 30% chance near pipes for risk/reward
+                    if (Math.random() < 0.7) {
+                        powerUpY = randomPipeY + pipeHeight + openingSpace * 0.2 + Math.random() * openingSpace * 0.6;
+                    } else {
+                        // Risky positions near pipes
+                        powerUpY = Math.random() < 0.5 
+                            ? randomPipeY + pipeHeight - 30 // Near bottom of top pipe
+                            : randomPipeY + pipeHeight + openingSpace + 10; // Near top of bottom pipe
+                    }
+                    
+                    powerUpArray.push({
+                        x: powerUpX,
+                        y: powerUpY,
+                        type: powerUpType
+                    });
+                    break; // Only spawn one power-up per pipe set to avoid clutter
+                }
+            }
         };
 
         const moveBird = (e: KeyboardEvent) => {
@@ -475,6 +962,13 @@ function startGameLogic(
                     bird.y = birdY;
                     pipeArray = [];
                     coinArray = []; // Reset coins
+                    powerUpArray = []; // Reset power-ups
+                    powerUpNotifications = []; // Reset notifications
+                    // Reset power-up effects
+                    activePowerUps.shield.active = false;
+                    activePowerUps.speedBoost.active = false;
+                    activePowerUps.scoreMultiplier.active = false;
+                    gravity = 0.3 + (difficultyMultiplier - 1) * 0.05; // Reset gravity
                     setGameOver(false);
                     gameOverRef.current = false;
                     score = 0;
@@ -494,6 +988,12 @@ function startGameLogic(
                 bird.y = birdY;
                 pipeArray = [];
                 coinArray = []; // Reset coins
+                powerUpArray = []; // Reset power-ups
+                // Reset power-up effects
+                activePowerUps.shield.active = false;
+                activePowerUps.speedBoost.active = false;
+                activePowerUps.scoreMultiplier.active = false;
+                gravity = 0.3 + (difficultyMultiplier - 1) * 0.05; // Reset gravity
                 setGameOver(false);
                 gameOverRef.current = false;
                 score = 0;
@@ -512,6 +1012,12 @@ function startGameLogic(
                 bird.y = birdY;
                 pipeArray = [];
                 coinArray = []; // Reset coins
+                powerUpArray = []; // Reset power-ups
+                // Reset power-up effects
+                activePowerUps.shield.active = false;
+                activePowerUps.speedBoost.active = false;
+                activePowerUps.scoreMultiplier.active = false;
+                gravity = 0.3 + (difficultyMultiplier - 1) * 0.05; // Reset gravity
                 setGameOver(false);
                 gameOverRef.current = false;
                 score = 0;
@@ -569,6 +1075,7 @@ const FlappyBirdGame: React.FC = () => {
     const [countdown, setCountdown] = useState<number | null>(null);
     const [showCountdown, setShowCountdown] = useState(false);
     const [showRewardInfo, setShowRewardInfo] = useState(false);
+    const [showPowerUpGuide, setShowPowerUpGuide] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [loadingProgress, setLoadingProgress] = useState(0);
     
@@ -1510,7 +2017,7 @@ const FlappyBirdGame: React.FC = () => {
                                 </button>
                                 <div className="mt-2 text-sm text-blue-100 bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
                                     <p className="font-semibold text-green-300">🎯 Pipe: +1 point | 🪙 Coin: +1 point</p>
-                                    <p>Perfect for new players!</p>
+                                    <p>Perfect for new players! Includes power-ups: 🛡️ Shield, ⚡ Speed, ✨ 2X Score, 💎 Bonus</p>
                                 </div>
                             </div>
                             
@@ -1523,7 +2030,7 @@ const FlappyBirdGame: React.FC = () => {
                                 </button>
                                 <div className="mt-2 text-sm text-blue-100 bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
                                     <p className="font-semibold text-yellow-300">🎯 Pipe: +2 points | 🪙 Coin: +1 point</p>
-                                    <p>Better rewards for skilled players!</p>
+                                    <p>Better rewards for skilled players! More power-ups: 🛡️ Shield, ⚡ Speed, ✨ 2X Score, 💎 Bonus</p>
                                 </div>
                             </div>
                             
@@ -1536,7 +2043,7 @@ const FlappyBirdGame: React.FC = () => {
                                 </button>
                                 <div className="mt-2 text-sm text-blue-100 bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
                                     <p className="font-semibold text-red-300">🎯 Pipe: +3 points | 🪙 Coin: +1 point</p>
-                                    <p>Maximum rewards for pros!</p>
+                                    <p>Maximum rewards for pros! Rare power-ups: 🛡️ Shield, ⚡ Speed, ✨ 2X Score, 💎 Bonus</p>
                                 </div>
                             </div>
                         </div>
@@ -1827,12 +2334,21 @@ const FlappyBirdGame: React.FC = () => {
                             ></div>
                         </div>
                     </div>
-                    <button 
-                        className="bg-black/50 backdrop-blur-sm py-2 px-4 text-white text-sm rounded-full font-bold shadow active:scale-95 transition-all duration-200" 
-                        onClick={() => setMode("")}
-                    >
-                        Menu
-                    </button>
+                    <div className="flex gap-2">
+                        <button 
+                            className="bg-black/50 backdrop-blur-sm py-2 px-3 text-white text-sm rounded-full font-bold shadow active:scale-95 transition-all duration-200" 
+                            onClick={() => setShowPowerUpGuide(true)}
+                            title="Power-ups Guide"
+                        >
+                            ⚡
+                        </button>
+                        <button 
+                            className="bg-black/50 backdrop-blur-sm py-2 px-4 text-white text-sm rounded-full font-bold shadow active:scale-95 transition-all duration-200" 
+                            onClick={() => setMode("")}
+                        >
+                            Menu
+                        </button>
+                    </div>
                 </div>
                 
                 {/* Instructions and Difficulty Info */}
@@ -1856,12 +2372,21 @@ const FlappyBirdGame: React.FC = () => {
                 </div>
                 <div className="mt-3 text-center">
                     <p className="text-sm text-gray-600">Tap screen to jump!</p>
-                    <button 
-                        className="mt-2 py-2 px-4 bg-gradient-to-r from-gray-400 to-gray-600 text-white text-sm rounded-xl font-bold shadow active:scale-95 transition-all duration-200" 
-                        onClick={() => setMode("")}
-                    >
-                        ← Menu
-                    </button>
+                    <div className="flex gap-2 justify-center mt-2">
+                        <button 
+                            className="py-2 px-3 bg-gradient-to-r from-blue-400 to-blue-600 text-white text-sm rounded-xl font-bold shadow active:scale-95 transition-all duration-200" 
+                            onClick={() => setShowPowerUpGuide(true)}
+                            title="Power-ups Guide"
+                        >
+                            ⚡ Guide
+                        </button>
+                        <button 
+                            className="py-2 px-4 bg-gradient-to-r from-gray-400 to-gray-600 text-white text-sm rounded-xl font-bold shadow active:scale-95 transition-all duration-200" 
+                            onClick={() => setMode("")}
+                        >
+                            ← Menu
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1872,6 +2397,139 @@ const FlappyBirdGame: React.FC = () => {
           onClose={() => setShowRewardInfo(false)}
           localStorageKey="flapbitrum_home_reward_info_seen"
         />
+
+        {/* Power-up Guide Modal */}
+        {showPowerUpGuide && (
+            <div 
+                className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+                onClick={() => setShowPowerUpGuide(false)}
+            >
+                <div 
+                    className="bg-gradient-to-br from-blue-900/95 via-indigo-800/95 to-blue-700/95 backdrop-blur-lg rounded-2xl border border-white/20 shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {/* Header */}
+                    <div className="flex items-center justify-between p-6 border-b border-white/20">
+                        <div className="flex items-center gap-3">
+                            <span className="text-2xl">⚡</span>
+                            <h2 className="text-xl font-bold text-white">Power-ups Guide</h2>
+                        </div>
+                        <button
+                            onClick={() => setShowPowerUpGuide(false)}
+                            className="w-8 h-8 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all duration-200"
+                        >
+                            ✕
+                        </button>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-6">
+                        <p className="text-gray-300 text-sm mb-6">
+                            Collect these special items during gameplay to gain powerful advantages!
+                        </p>
+
+                        <div className="space-y-4">
+                            {/* Shield */}
+                            <div className="bg-white/10 rounded-xl p-4 border border-yellow-500/30">
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+                                        <span className="text-lg">🛡️</span>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-yellow-300 font-bold">Shield</h3>
+                                        <p className="text-yellow-200 text-sm">8% spawn rate</p>
+                                    </div>
+                                    <div className="ml-auto">
+                                        <span className="text-yellow-300 font-bold">+5 pts</span>
+                                    </div>
+                                </div>
+                                <p className="text-gray-300 text-sm">
+                                    Protects from all collisions for 15 seconds. Perfect for risky maneuvers!
+                                </p>
+                            </div>
+
+                            {/* Speed Boost */}
+                            <div className="bg-white/10 rounded-xl p-4 border border-green-500/30">
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center">
+                                        <span className="text-lg">⚡</span>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-green-300 font-bold">Speed Boost</h3>
+                                        <p className="text-green-200 text-sm">6% spawn rate</p>
+                                    </div>
+                                    <div className="ml-auto">
+                                        <span className="text-green-300 font-bold">+3 pts</span>
+                                    </div>
+                                </div>
+                                <p className="text-gray-300 text-sm">
+                                    Reduces gravity for 8 seconds, making the bird easier to control.
+                                </p>
+                            </div>
+
+                            {/* Score Multiplier */}
+                            <div className="bg-white/10 rounded-xl p-4 border border-purple-500/30">
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full flex items-center justify-center">
+                                        <span className="text-lg">✨</span>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-purple-300 font-bold">Score Multiplier</h3>
+                                        <p className="text-purple-200 text-sm">4% spawn rate</p>
+                                    </div>
+                                    <div className="ml-auto">
+                                        <span className="text-purple-300 font-bold">+8 pts</span>
+                                    </div>
+                                </div>
+                                <p className="text-gray-300 text-sm">
+                                    Doubles all points earned for 10 seconds. Affects pipes, coins, and power-ups!
+                                </p>
+                            </div>
+
+                            {/* Diamond */}
+                            <div className="bg-white/10 rounded-xl p-4 border border-cyan-500/30">
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center">
+                                        <span className="text-lg">💎</span>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-cyan-300 font-bold">Rare Diamond</h3>
+                                        <p className="text-cyan-200 text-sm">2% spawn rate</p>
+                                    </div>
+                                    <div className="ml-auto">
+                                        <span className="text-cyan-300 font-bold">+15 pts</span>
+                                    </div>
+                                </div>
+                                <p className="text-gray-300 text-sm">
+                                    The rarest power-up! Provides a massive point bonus when collected.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Tips */}
+                        <div className="bg-white/5 rounded-xl p-4 border border-white/10 mt-6">
+                            <h4 className="text-white font-bold mb-2">💡 Pro Tips:</h4>
+                            <ul className="text-gray-300 text-sm space-y-1">
+                                <li>• Power-ups spawn more frequently as difficulty increases</li>
+                                <li>• Some power-ups appear near pipes for extra challenge</li>
+                                <li>• Active power-ups show as transparent bars in the center-top</li>
+                                <li>• Score multiplier affects all point sources when active</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="p-6 border-t border-white/20">
+                        <button
+                            onClick={() => setShowPowerUpGuide(false)}
+                            className="w-full py-3 px-6 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-bold shadow-lg active:scale-95 hover:from-blue-600 hover:to-indigo-700 transition-all duration-200"
+                        >
+                            Got it! 🚀
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
         </>
     );
 };
