@@ -34,9 +34,25 @@ function startGameLogic(
     onGameOver?: (finalScore: number) => void
 ) {
     const canvas = canvasRef.current;
-    if (canvas) {
-        const context = canvas.getContext("2d");
-        if (!context) return;
+    if (!canvas) {
+        console.error("Canvas not found");
+        return;
+    }
+    
+    const context = canvas.getContext("2d");
+    if (!context) {
+        console.error("Canvas context not available");
+        return;
+    }
+    
+    // Additional check for canvas context validity (important for Farcaster/iframe)
+    try {
+        context.fillStyle = "#000000";
+        context.clearRect(0, 0, 1, 1);
+    } catch (error) {
+        console.error("Canvas context not working properly:", error);
+        return;
+    }
 
         // Set canvas dimensions explicitly
         canvas.width = canvasDimensions.width;
@@ -557,13 +573,58 @@ function startGameLogic(
 
         const update = () => {
             if (gameOverRef.current) {
-                context.clearRect(0, 0, canvas.width, canvas.height);
-                context.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-                context.font = "bold 48px serif";
-                context.fillStyle = "#28A0F0";
-                context.textAlign = "center";
-                context.fillText("Game Over", canvas.width / 2, canvas.height / 2);
-                context.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 + 50);
+                try {
+                    // Clear and render game over screen
+                    context.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Draw background
+                    if (bgImg.complete && bgImg.naturalHeight !== 0) {
+                        context.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+                    } else {
+                        // Fallback background color
+                        context.fillStyle = "#0D2B5E";
+                        context.fillRect(0, 0, canvas.width, canvas.height);
+                    }
+                    
+                    // Draw semi-transparent overlay
+                    context.fillStyle = "rgba(0, 0, 0, 0.7)";
+                    context.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Draw game over text with better styling
+                    context.font = "bold 48px Arial, sans-serif";
+                    context.fillStyle = "#FF4444";
+                    context.strokeStyle = "#FFFFFF";
+                    context.lineWidth = 2;
+                    context.textAlign = "center";
+                    context.textBaseline = "middle";
+                    
+                    const gameOverText = "Game Over";
+                    context.strokeText(gameOverText, canvas.width / 2, canvas.height / 2 - 25);
+                    context.fillText(gameOverText, canvas.width / 2, canvas.height / 2 - 25);
+                    
+                    // Draw score with better styling
+                    context.font = "bold 32px Arial, sans-serif";
+                    context.fillStyle = "#28A0F0";
+                    const scoreText = `Score: ${score}`;
+                    context.strokeText(scoreText, canvas.width / 2, canvas.height / 2 + 25);
+                    context.fillText(scoreText, canvas.width / 2, canvas.height / 2 + 25);
+                    
+                    // Draw restart instruction
+                    context.font = "bold 20px Arial, sans-serif";
+                    context.fillStyle = "#FFFFFF";
+                    const restartText = "Tap to play again";
+                    context.fillText(restartText, canvas.width / 2, canvas.height / 2 + 70);
+                    
+                } catch (error) {
+                    console.error("Error rendering game over screen:", error);
+                    // Fallback: just clear the canvas
+                    context.fillStyle = "#0D2B5E";
+                    context.fillRect(0, 0, canvas.width, canvas.height);
+                    context.fillStyle = "#FFFFFF";
+                    context.font = "bold 24px Arial";
+                    context.textAlign = "center";
+                    context.fillText("Game Over - Tap to restart", canvas.width / 2, canvas.height / 2);
+                }
                 return;
             }
             
@@ -588,22 +649,47 @@ function startGameLogic(
                 context.textAlign = "center";
                 context.fillText(`Level ${Math.floor(difficultyMultiplier * 10) / 10}!`, canvas.width / 2, canvas.height / 3);
             }
-            context.clearRect(0, 0, canvas.width, canvas.height);
+            try {
+                // Clear canvas
+                context.clearRect(0, 0, canvas.width, canvas.height);
 
-            context.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+                // Draw background with fallback
+                if (bgImg.complete && bgImg.naturalHeight !== 0) {
+                    context.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+                } else {
+                    context.fillStyle = "#0D2B5E";
+                    context.fillRect(0, 0, canvas.width, canvas.height);
+                }
 
-            velocityY += gravity;
-            bird.y = Math.max(bird.y + velocityY, 0);
+                // Update bird physics
+                velocityY += gravity;
+                bird.y = Math.max(bird.y + velocityY, 0);
 
-            if (bird.y >= canvas.height - bird.height || bird.y <= 0) {
-                playOopsSound(); // Play funny sound when hitting ground/ceiling
-                setGameOver(true);
-                gameOverRef.current = true;
-                if (onGameOver) onGameOver(score);
-                return;
+                // Check bounds collision
+                if (bird.y >= canvas.height - bird.height || bird.y <= 0) {
+                    playOopsSound(); // Play funny sound when hitting ground/ceiling
+                    setGameOver(true);
+                    gameOverRef.current = true;
+                    if (onGameOver) onGameOver(score);
+                    return;
+                }
+
+                // Draw bird with fallback
+                if (birdImg.complete && birdImg.naturalHeight !== 0) {
+                    context.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
+                } else {
+                    // Fallback bird drawing
+                    context.fillStyle = "#28A0F0";
+                    context.fillRect(bird.x, bird.y, bird.width, bird.height);
+                }
+            } catch (error) {
+                console.error("Error in main drawing operations:", error);
+                // Continue with simplified rendering
+                context.fillStyle = "#0D2B5E";
+                context.fillRect(0, 0, canvas.width, canvas.height);
+                context.fillStyle = "#28A0F0";
+                context.fillRect(bird.x, bird.y, bird.width, bird.height);
             }
-
-            context.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
 
             // Update and draw coins
             for (let i = coinArray.length - 1; i >= 0; i--) {
@@ -748,18 +834,12 @@ function startGameLogic(
                         context.fillStyle = "rgba(255, 215, 0, 0.5)";
                         context.fillRect(0, 0, canvas.width, canvas.height);
                     } else {
+                        // Game over - let the main game over logic handle rendering
                         playCrashSound(); // Play bomb sound when hitting pipe
                         setGameOver(true);
                         gameOverRef.current = true;
                         if (onGameOver) onGameOver(score);
-                        context.clearRect(0, 0, canvas.width, canvas.height);
-                        context.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-                        context.font = "bold 48px serif";
-                        context.fillStyle = "#28A0F0";
-                        context.textAlign = "center";
-                        context.fillText("Game Over", canvas.width / 2, canvas.height / 2);
-                        context.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 + 50);
-                        return;
+                        return; // Exit update loop, let game over rendering take over
                     }
                 }
             }
@@ -873,7 +953,15 @@ function startGameLogic(
             // Draw power-up notifications
             drawPowerUpNotifications(context, currentTime);
 
-            requestAnimationFrame(update);
+            try {
+                requestAnimationFrame(update);
+            } catch (error) {
+                console.error("Error in game update loop:", error);
+                // Try to recover by stopping the game gracefully
+                setGameOver(true);
+                gameOverRef.current = true;
+                if (onGameOver) onGameOver(score);
+            }
         };
 
         const placePipes = () => {
@@ -1059,7 +1147,6 @@ function startGameLogic(
             canvas.removeEventListener("click", handleClick);
         };
     }
-}
 
 const FlappyBirdGame: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
