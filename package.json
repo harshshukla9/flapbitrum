@@ -7,15 +7,21 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "reset:claims:all": "node scripts/resetClaims.js --all",
+    "reset:claims:fid": "node scripts/resetClaims.js --fid",
+    "reset:claims:address": "node scripts/resetClaims.js --address"
   },
   "dependencies": {
     "@farcaster/miniapp-core": "^0.3.6",
     "@farcaster/miniapp-node": "^0.1.6",
     "@farcaster/miniapp-sdk": "^0.1.7",
     "@farcaster/miniapp-wagmi-connector": "^1.0.0",
+    "@fortawesome/free-solid-svg-icons": "^7.0.1",
+    "@fortawesome/react-fontawesome": "^3.0.2",
     "@tanstack/react-query": "^5.64.2",
     "@upstash/redis": "^1.35.1",
+    "ethers": "^6.15.0",
     "mongodb": "^6.19.0",
     "mongoose": "^8.18.0",
     "next": "14.2.6",

@@ -3,10 +3,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useSetScore, useMyGameData } from '../smartcontracthooks';
 import { useSetScoreWithMongo } from '@/smartcontracthooks/useFlappyContractWithMongo';
 import { useCurrentActiveWeek } from '@/smartcontracthooks/useWeeklyEvents';
-import { useAccount, useConnect } from 'wagmi';
+import { useAccount, useConnect, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { CONTRACT_ADDRESSES, TOKEN_REWARD_ABI } from '@/lib/claimcontract';
 import { useFrame } from './farcaster-provider';
 import RewardInfoPopup from './RewardInfoPopup';
+import GiftBox from './GiftBox';
 import { APP_URL } from '@/lib/constants';
+import { authenticatedFetch } from '@/lib/auth';
 
 export function startGame(
     canvasRef: React.RefObject<HTMLCanvasElement>,
@@ -668,6 +671,7 @@ function startGameLogic(
                 // Check bounds collision
                 if (bird.y >= canvas.height - bird.height || bird.y <= 0) {
                     playOopsSound(); // Play funny sound when hitting ground/ceiling
+                    console.log("🔍 Game over - bird hit ground/ceiling, setting gameOver to true");
                     setGameOver(true);
                     gameOverRef.current = true;
                     if (onGameOver) onGameOver(score);
@@ -836,6 +840,7 @@ function startGameLogic(
                     } else {
                         // Game over - let the main game over logic handle rendering
                         playCrashSound(); // Play bomb sound when hitting pipe
+                        console.log("🔍 Game over - bird hit pipe, setting gameOver to true");
                         setGameOver(true);
                         gameOverRef.current = true;
                         if (onGameOver) onGameOver(score);
@@ -958,6 +963,7 @@ function startGameLogic(
             } catch (error) {
                 console.error("Error in game update loop:", error);
                 // Try to recover by stopping the game gracefully
+                console.log("🔍 Game over - error in update loop, setting gameOver to true");
                 setGameOver(true);
                 gameOverRef.current = true;
                 if (onGameOver) onGameOver(score);
@@ -1165,6 +1171,28 @@ const FlappyBirdGame: React.FC = () => {
     const [showPowerUpGuide, setShowPowerUpGuide] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [loadingProgress, setLoadingProgress] = useState(0);
+    const [showGiftBox, setShowGiftBox] = useState(false);
+    const [pendingGiftBox, setPendingGiftBox] = useState(false);
+    const [giftBoxReward, setGiftBoxReward] = useState<any>(null);
+    const [isClaimingGiftBox, setIsClaimingGiftBox] = useState(false);
+    const [hasClaimedOnChain, setHasClaimedOnChain] = useState(false);
+    const { writeContract: writeClaimToken, data: claimTxHash } = useWriteContract();
+    const { isLoading: isClaimConfirming, isSuccess: isClaimConfirmed } = useWaitForTransactionReceipt({ hash: claimTxHash });
+    
+    // Debug game over state changes
+    useEffect(() => {
+        console.log("🔍 Game over state changed to:", gameOver);
+    }, [gameOver]);
+    
+    // Debug gift box state changes
+    useEffect(() => {
+        console.log("🔍 showGiftBox state changed to:", showGiftBox);
+    }, [showGiftBox]);
+    
+    // Debug pending gift box state changes
+    useEffect(() => {
+        console.log("🔍 pendingGiftBox state changed to:", pendingGiftBox);
+    }, [pendingGiftBox]);
     
     // Debug reward info popup state
     useEffect(() => {
@@ -1206,7 +1234,7 @@ const FlappyBirdGame: React.FC = () => {
     }, []);
 
     // Debug current state
-    console.log("🔍 Current state - Mode:", mode, "Game Started:", gameStarted, "Game Over:", gameOver);
+    console.log("🔍 Current state - Mode:", mode, "Game Started:", gameStarted, "Game Over:", gameOver, "gameOverRef:", gameOverRef.current);
 
     // Set canvas dimensions based on screen size
     useEffect(() => {
@@ -1243,6 +1271,10 @@ const FlappyBirdGame: React.FC = () => {
         setScore(0);
         setLevel(selectedLevel);
         setMode("single"); // Set mode to single to show game canvas
+        setPendingGiftBox(false); // Reset gift box state
+        setShowGiftBox(false); // Reset gift box modal
+        setGiftBoxReward(null); // Reset gift box reward
+        setIsClaimingGiftBox(false); // Reset claiming state
         
         // Clear canvas if it exists
         if (canvasRef.current) {
@@ -1260,6 +1292,7 @@ const FlappyBirdGame: React.FC = () => {
 
     const handleGameOver = (finalScore: number) => {
         console.log("🔍 Game over with score:", finalScore);
+        console.log("🔍 Current state - isConnected:", isConnected, "address:", address);
         
         // Auto-save score if conditions are met (allow any positive score)
         if (isConnected && address && finalScore > 0 && !isSavingScoreWithMongo && !isConfirmingTransaction && !scoreSavedWithMongo) {
@@ -1268,6 +1301,34 @@ const FlappyBirdGame: React.FC = () => {
             setTimeout(() => {
                 handleSaveToChain();
             }, 100);
+        }
+
+        // Check if user can claim gift box - show directly in game over screen
+        if (finalScore > 0 && isConnected && address) {
+            const farcasterFid = context?.user?.fid || fid || 0;
+            const params = new URLSearchParams({ userAddress: address, fid: String(farcasterFid) });
+            
+            // Check immediately and show gift box directly in game over screen
+            console.log("🔍 Checking gift box availability immediately...");
+            console.log("🔍 API URL:", `/api/claim-gift-box?${params.toString()}`);
+            authenticatedFetch(`/api/claim-gift-box?${params.toString()}`)
+              .then(res => {
+                console.log("🔍 Gift box API response status:", res.status);
+                return res.json();
+              })
+              .then(data => {
+                console.log("🔍 Gift box API response data:", data);
+                if (data?.success && data?.canSee) {
+                    console.log("🔍 User can see gift box, setting pendingGiftBox to true");
+                    setPendingGiftBox(true);
+                } else {
+                    console.log("🔍 User cannot see gift box:", data);
+                }
+              })
+              .catch((error) => {
+                console.log("🔍 Gift box API error:", error);
+                // fail-closed: do not show
+              });
         }
     };
 
@@ -1293,6 +1354,97 @@ const FlappyBirdGame: React.FC = () => {
             console.log("🔍 Cannot save score - conditions not met");
         }
     };
+
+    const handleDirectGiftBoxClaim = async () => {
+        if (!address) {
+            console.log("🔍 No wallet connected");
+            return;
+        }
+
+        setIsClaimingGiftBox(true);
+        console.log("🔍 Claiming gift box directly...");
+
+        try {
+            const farcasterFid = context?.user?.fid || fid || 0;
+            const response = await authenticatedFetch('/api/claim-gift-box', {
+                method: 'POST',
+                body: JSON.stringify({
+                    userAddress: address,
+                    fid: farcasterFid
+                })
+            });
+
+            const result = await response.json();
+            console.log("🔍 Gift box claim result:", result);
+
+            if (result.success) {
+                setGiftBoxReward(result);
+                setPendingGiftBox(false);
+                console.log("🔍 Gift box claimed successfully!");
+            } else {
+                console.log("🔍 Gift box claim failed:", result.error);
+            }
+        } catch (error) {
+            console.error("🔍 Error claiming gift box:", error);
+        } finally {
+            setIsClaimingGiftBox(false);
+        }
+    };
+
+    const handleOnChainClaim = async () => {
+        if (!giftBoxReward || giftBoxReward.tokenType === 'none') return;
+        try {
+            console.log("claimimg")
+            setIsClaimingGiftBox(true);
+            const tokenAddress = getTokenAddressFromType(giftBoxReward.tokenType);
+            const amountInWei = BigInt(giftBoxReward.amountInWei || '0');
+            const nonce = BigInt(giftBoxReward.nonce || '0');
+            writeClaimToken({
+                address: CONTRACT_ADDRESSES.TOKEN_REWARD as `0x${string}`,
+                abi: TOKEN_REWARD_ABI,
+                functionName: 'claimTokenReward',
+                args: [tokenAddress as `0x${string}`, amountInWei, nonce, giftBoxReward.signature as `0x${string}`],
+            });
+        } catch (e) {
+            console.error('On-chain claim failed', e);
+            setIsClaimingGiftBox(false);
+        }
+    };
+
+    useEffect(() => {
+        if (isClaimConfirmed && isClaimingGiftBox) {
+            setIsClaimingGiftBox(false);
+            setHasClaimedOnChain(true);
+        }
+    }, [isClaimConfirmed, isClaimingGiftBox]);
+
+    const handleShareReward = async () => {
+        try {
+            if (!giftBoxReward) return;
+            const token = String(giftBoxReward.tokenType).toUpperCase();
+            const text = `Just claimed ${giftBoxReward.amount.toLocaleString()} ${token} on Flapbitrum! 🎁🔥\n\nThis game is airdropping real tokens. Come try your luck!\n\nPlay now 👉`;
+            await actions?.composeCast({
+                text: text,
+                embeds:[`${APP_URL}`]
+            });
+            
+        } catch (e) {
+            console.log('Share failed', e);
+        }
+    };
+
+    function getTokenAddressFromType(tokenType: 'arb' | 'pepe' | 'boop' | 'none') {
+        switch (tokenType) {
+            case 'arb':
+                return '0x912CE59144191C1204E64559FE8253a0e49E6548';
+            case 'pepe':
+                return '0x25d887Ce7a35172C62FeBFD67a1856F20FaEbB00';
+            case 'boop':
+                return '0x13A7DeDb7169a17bE92B0E3C7C2315B46f4772B3';
+            default:
+                return '0x0000000000000000000000000000000000000000';
+        }
+    }
 
     const handleCastScore = async () => {
         console.log("🔍 handleCastScore called!");
@@ -1717,6 +1869,41 @@ const FlappyBirdGame: React.FC = () => {
                                 💰 Top 15 players share the reward pool • 🔗 Connect wallet to save scores • 📢 Share achievements on Farcaster
                             </p>
                         </div>
+                        
+                        {/* Debug button - remove this later */}
+                        <button 
+                            className="w-full py-2 px-4 bg-red-500/50 text-white text-sm rounded-lg font-bold shadow active:scale-95 border border-red-300/20 transition-all duration-200 mt-4" 
+                            onClick={() => {
+                                console.log("🔍 Debug - Current state:", { gameOver, gameStarted, mode, pendingGiftBox, showGiftBox });
+                                console.log("🔍 Debug - Setting gameOver to true");
+                                setGameOver(true);
+                                setScore(100); // Set a test score
+                            }}
+                        >
+                            🐛 Debug: Force Game Over
+                        </button>
+                        
+                        {/* Debug button for gift box - remove this later */}
+                        <button 
+                            className="w-full py-2 px-4 bg-green-500/50 text-white text-sm rounded-lg font-bold shadow active:scale-95 border border-green-300/20 transition-all duration-200 mt-2" 
+                            onClick={() => {
+                                console.log("🔍 Debug - Setting showGiftBox to true");
+                                setShowGiftBox(true);
+                            }}
+                        >
+                            🎁 Debug: Force Gift Box
+                        </button>
+                        
+                        {/* Debug button for pending gift box - remove this later */}
+                        <button 
+                            className="w-full py-2 px-4 bg-yellow-500/50 text-white text-sm rounded-lg font-bold shadow active:scale-95 border border-yellow-300/20 transition-all duration-200 mt-2" 
+                            onClick={() => {
+                                console.log("🔍 Debug - Setting pendingGiftBox to true");
+                                setPendingGiftBox(true);
+                            }}
+                        >
+                            🎁 Debug: Force Pending Gift Box
+                        </button>
                     </div>
                 </div>
             </div>
@@ -2148,6 +2335,8 @@ const FlappyBirdGame: React.FC = () => {
     }
 
     if (gameOver) {
+        console.log("🔍 Rendering game over screen - gameOver:", gameOver, "pendingGiftBox:", pendingGiftBox);
+        console.log("🔍 Game over screen should be visible now!");
         return (
             <>
                 <WalletConnection />
@@ -2241,6 +2430,63 @@ const FlappyBirdGame: React.FC = () => {
                             )}
                         </div>
                         <div className="space-y-4 w-full max-w-xs">
+                            {/* Direct Gift Box Claim - Show when pending */}
+                            {pendingGiftBox && !giftBoxReward && (
+                                <button 
+                                    className="w-full py-4 px-6 bg-gradient-to-r from-yellow-500 to-orange-600 text-white text-lg rounded-2xl font-bold shadow-lg active:scale-95 hover:from-yellow-600 hover:to-orange-700 transition-all duration-200 border border-white/20 animate-pulse" 
+                                    onClick={handleDirectGiftBoxClaim}
+                                    disabled={isClaimingGiftBox}
+                                >
+                                    {isClaimingGiftBox ? (
+                                        <div className="flex items-center justify-center">
+                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                                            Claiming...
+                                        </div>
+                                    ) : (
+                                        "🎁 Claim Gift Box"
+                                    )}
+                                </button>
+                            )}
+
+                            {/* Gift Box Reward Display */}
+                            {giftBoxReward && (
+                                <div className="w-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-sm rounded-2xl p-4 border border-purple-400/30">
+                                    <div className="text-center">
+                                        <div className="text-2xl mb-2">🎁</div>
+                                        <h3 className="text-lg font-bold text-white mb-2">
+                                            {giftBoxReward.tokenType === 'none' ? 'Better Luck Next Time!' : `You Won ${giftBoxReward.amount.toLocaleString()} ${giftBoxReward.tokenType.toUpperCase()}!`}
+                                        </h3>
+                                        {giftBoxReward.tokenType !== 'none' && (
+                                            <p className="text-sm text-purple-200 mb-3">
+                                                Claim on blockchain to receive your tokens
+                                            </p>
+                                        )}
+                                        <div className="text-xs text-purple-300">
+                                            Claims today: {giftBoxReward.claimsToday}/5 | Remaining: {giftBoxReward.remainingClaims}
+                                        </div>
+                                        {giftBoxReward.tokenType !== 'none' && (
+                                            <div className="mt-3 space-y-2">
+                                                <button 
+                                                    className="w-full py-3 px-6 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-base rounded-xl font-bold shadow-lg active:scale-95 hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 border border-white/20 disabled:opacity-60"
+                                                    onClick={handleOnChainClaim}
+                                                    disabled={hasClaimedOnChain || isClaimingGiftBox || isClaimConfirming}
+                                                >
+                                                    {hasClaimedOnChain ? '✅ Claimed' : (isClaimingGiftBox || isClaimConfirming ? 'Claiming...' : 'Claim on-chain')}
+                                                </button>
+                                                {hasClaimedOnChain && (
+                                                    <button 
+                                                        className="w-full py-3 px-6 bg-gradient-to-r from-purple-500 to-pink-600 text-white text-base rounded-xl font-bold shadow-lg active:scale-95 hover:from-purple-600 hover:to-pink-700 transition-all duration-200 border border-white/20"
+                                                        onClick={handleShareReward}
+                                                    >
+                                                        Share on Farcaster 🚀
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                            
                             {/* Cast Score Button - Show for all scores */}
                             {score >= 1 && (
                                 <button 
@@ -2353,6 +2599,63 @@ const FlappyBirdGame: React.FC = () => {
                             className="w-full h-auto rounded-xl border-2 border-blue-300 shadow mb-4" 
                         />
                         <div className="space-y-3">
+                            {/* Direct Gift Box Claim - Show when pending */}
+                            {pendingGiftBox && !giftBoxReward && (
+                                <button 
+                                    className="w-full py-3 px-6 bg-gradient-to-r from-yellow-500 to-orange-600 text-white text-lg rounded-2xl font-bold shadow-lg active:scale-95 hover:from-yellow-600 hover:to-orange-700 transition-all duration-200 animate-pulse" 
+                                    onClick={handleDirectGiftBoxClaim}
+                                    disabled={isClaimingGiftBox}
+                                >
+                                    {isClaimingGiftBox ? (
+                                        <div className="flex items-center justify-center">
+                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                                            Claiming...
+                                        </div>
+                                    ) : (
+                                        "🎁 Claim Gift Box"
+                                    )}
+                                </button>
+                            )}
+
+                            {/* Gift Box Reward Display */}
+                            {giftBoxReward && (
+                                <div className="w-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-sm rounded-2xl p-4 border border-purple-400/30 mb-3">
+                                    <div className="text-center">
+                                        <div className="text-2xl mb-2">🎁</div>
+                                        <h3 className="text-lg font-bold text-white mb-2">
+                                            {giftBoxReward.tokenType === 'none' ? 'Better Luck Next Time!' : `You Won ${giftBoxReward.amount.toLocaleString()} ${giftBoxReward.tokenType.toUpperCase()}!`}
+                                        </h3>
+                                        {giftBoxReward.tokenType !== 'none' && (
+                                            <p className="text-sm text-purple-200 mb-3">
+                                                Claim on blockchain to receive your tokens
+                                            </p>
+                                        )}
+                                        <div className="text-xs text-purple-300">
+                                            Claims today: {giftBoxReward.claimsToday}/5 | Remaining: {giftBoxReward.remainingClaims}
+                                        </div>
+                                        {giftBoxReward.tokenType !== 'none' && (
+                                            <div className="mt-3 space-y-2">
+                                                <button 
+                                                    className="w-full py-3 px-6 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-base rounded-xl font-bold shadow-lg active:scale-95 hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 disabled:opacity-60"
+                                                    onClick={handleOnChainClaim}
+                                                    disabled={hasClaimedOnChain || isClaimingGiftBox || isClaimConfirming}
+                                                >
+                                                    {hasClaimedOnChain ? '✅ Claimed' : (isClaimingGiftBox || isClaimConfirming ? 'Claiming...' : 'Claim on-chain')}
+                                                </button>
+                                                {hasClaimedOnChain && (
+                                                    <button 
+                                                        className="w-full py-3 px-6 bg-gradient-to-r from-purple-500 to-pink-600 text-white text-base rounded-xl font-bold shadow-lg active:scale-95 hover:from-purple-600 hover:to-pink-700 transition-all duration-200"
+                                                        onClick={handleShareReward}
+                                                    >
+                                                        Share on Farcaster 🚀
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                            
                             {/* Cast Score Button - Show for all scores */}
                             {score >= 1 && (
                                 <button 
@@ -2484,6 +2787,23 @@ const FlappyBirdGame: React.FC = () => {
           onClose={() => setShowRewardInfo(false)}
           localStorageKey="flapbitrum_home_reward_info_seen"
         />
+
+        {showGiftBox && (
+          <>
+            {console.log("🔍 Rendering GiftBox component - showGiftBox is true")}
+            {console.log("🔍 Other modal states:", { showPowerUpGuide, showRewardInfo, showCountdown })}
+            <GiftBox 
+              onClose={() => {
+                console.log("🔍 GiftBox onClose called");
+                setShowGiftBox(false);
+              }}
+              onClaimComplete={() => {
+                console.log("🔍 GiftBox onClaimComplete called");
+                setShowGiftBox(false);
+              }}
+            />
+          </>
+        )}
 
         {/* Power-up Guide Modal */}
         {showPowerUpGuide && (
