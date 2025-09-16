@@ -51,12 +51,12 @@ export function useCurrentActiveWeek() {
       const end = new Date(endMs).toISOString()
       const start = new Date(startMs).toISOString()
 
-      setData({ currentWeek: { eventId: 'Week-4', endDate: end, name: 'Weekly Tournament', description: 'Everyone starts from 0 - equal chances!', startDate: start, totalPrizePool: 50 } })
+      setData({ currentWeek: { eventId: 'Week-5', endDate: end, name: 'Weekly Tournament', description: 'Everyone starts from 0 - equal chances!', startDate: start, totalPrizePool: 50 } })
       setIsLoading(false)
     } catch {
       const fallbackEnd = new Date(getNextTuesdayEndTime()).toISOString()
       const start = new Date().toISOString()
-      setData({ currentWeek: { eventId: 'Week-4', endDate: fallbackEnd, name: 'Weekly Tournament', description: 'Everyone starts from 0 - equal chances!', startDate: start, totalPrizePool: 50 } })
+      setData({ currentWeek: { eventId: 'Week-5', endDate: fallbackEnd, name: 'Weekly Tournament', description: 'Everyone starts from 0 - equal chances!', startDate: start, totalPrizePool: 50 } })
       setIsLoading(false)
     }
   }, [])

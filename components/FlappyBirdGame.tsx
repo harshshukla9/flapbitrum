@@ -8,6 +8,7 @@ import { CONTRACT_ADDRESSES, TOKEN_REWARD_ABI } from '@/lib/claimcontract';
 import { useFrame } from './farcaster-provider';
 import RewardInfoPopup from './RewardInfoPopup';
 import GiftBox from './GiftBox';
+import TokenBalanceDisplay from './TokenBalanceDisplay';
 import { APP_URL } from '@/lib/constants';
 import { authenticatedFetch } from '@/lib/auth';
 
@@ -42,7 +43,7 @@ function startGameLogic(
         return;
     }
     
-    const context = canvas.getContext("2d");
+        const context = canvas.getContext("2d");
     if (!context) {
         console.error("Canvas context not available");
         return;
@@ -578,11 +579,11 @@ function startGameLogic(
             if (gameOverRef.current) {
                 try {
                     // Clear and render game over screen
-                    context.clearRect(0, 0, canvas.width, canvas.height);
+                context.clearRect(0, 0, canvas.width, canvas.height);
                     
                     // Draw background
                     if (bgImg.complete && bgImg.naturalHeight !== 0) {
-                        context.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+                context.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
                     } else {
                         // Fallback background color
                         context.fillStyle = "#0D2B5E";
@@ -607,7 +608,7 @@ function startGameLogic(
                     
                     // Draw score with better styling
                     context.font = "bold 32px Arial, sans-serif";
-                    context.fillStyle = "#28A0F0";
+                context.fillStyle = "#28A0F0";
                     const scoreText = `Score: ${score}`;
                     context.strokeText(scoreText, canvas.width / 2, canvas.height / 2 + 25);
                     context.fillText(scoreText, canvas.width / 2, canvas.height / 2 + 25);
@@ -625,7 +626,7 @@ function startGameLogic(
                     context.fillRect(0, 0, canvas.width, canvas.height);
                     context.fillStyle = "#FFFFFF";
                     context.font = "bold 24px Arial";
-                    context.textAlign = "center";
+                context.textAlign = "center";
                     context.fillText("Game Over - Tap to restart", canvas.width / 2, canvas.height / 2);
                 }
                 return;
@@ -654,33 +655,33 @@ function startGameLogic(
             }
             try {
                 // Clear canvas
-                context.clearRect(0, 0, canvas.width, canvas.height);
+            context.clearRect(0, 0, canvas.width, canvas.height);
 
                 // Draw background with fallback
                 if (bgImg.complete && bgImg.naturalHeight !== 0) {
-                    context.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+            context.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
                 } else {
                     context.fillStyle = "#0D2B5E";
                     context.fillRect(0, 0, canvas.width, canvas.height);
                 }
 
                 // Update bird physics
-                velocityY += gravity;
-                bird.y = Math.max(bird.y + velocityY, 0);
+            velocityY += gravity;
+            bird.y = Math.max(bird.y + velocityY, 0);
 
                 // Check bounds collision
-                if (bird.y >= canvas.height - bird.height || bird.y <= 0) {
-                    playOopsSound(); // Play funny sound when hitting ground/ceiling
+            if (bird.y >= canvas.height - bird.height || bird.y <= 0) {
+                playOopsSound(); // Play funny sound when hitting ground/ceiling
                     console.log("🔍 Game over - bird hit ground/ceiling, setting gameOver to true");
-                    setGameOver(true);
-                    gameOverRef.current = true;
-                    if (onGameOver) onGameOver(score);
-                    return;
-                }
+                setGameOver(true);
+                gameOverRef.current = true;
+                if (onGameOver) onGameOver(score);
+                return;
+            }
 
                 // Draw bird with fallback
                 if (birdImg.complete && birdImg.naturalHeight !== 0) {
-                    context.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
+            context.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
                 } else {
                     // Fallback bird drawing
                     context.fillStyle = "#28A0F0";
@@ -839,11 +840,11 @@ function startGameLogic(
                         context.fillRect(0, 0, canvas.width, canvas.height);
                     } else {
                         // Game over - let the main game over logic handle rendering
-                        playCrashSound(); // Play bomb sound when hitting pipe
+                    playCrashSound(); // Play bomb sound when hitting pipe
                         console.log("🔍 Game over - bird hit pipe, setting gameOver to true");
-                        setGameOver(true);
-                        gameOverRef.current = true;
-                        if (onGameOver) onGameOver(score);
+                    setGameOver(true);
+                    gameOverRef.current = true;
+                    if (onGameOver) onGameOver(score);
                         return; // Exit update loop, let game over rendering take over
                     }
                 }
@@ -959,7 +960,7 @@ function startGameLogic(
             drawPowerUpNotifications(context, currentTime);
 
             try {
-                requestAnimationFrame(update);
+            requestAnimationFrame(update);
             } catch (error) {
                 console.error("Error in game update loop:", error);
                 // Try to recover by stopping the game gracefully
@@ -1152,7 +1153,7 @@ function startGameLogic(
             canvas.removeEventListener("touchstart", handleTouch);
             canvas.removeEventListener("click", handleClick);
         };
-    }
+}
 
 const FlappyBirdGame: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -1425,7 +1426,7 @@ const FlappyBirdGame: React.FC = () => {
             const text = `Just claimed ${giftBoxReward.amount.toLocaleString()} ${token} on Flapbitrum! 🎁🔥\n\nThis game is airdropping real tokens. Come try your luck!\n\nPlay now 👉`;
             await actions?.composeCast({
                 text: text,
-                embeds:[`${APP_URL}`]
+                embeds:[`https://farcaster.xyz/miniapps/rcGxScTRGCs8/flapbitrum`]
             });
             
         } catch (e) {
@@ -1473,7 +1474,7 @@ const FlappyBirdGame: React.FC = () => {
             
             await actions.composeCast({
                 text: castText,
-                embeds:[`${APP_URL}`]
+                embeds:[`https://farcaster.xyz/miniapps/rcGxScTRGCs8/flapbitrum`]
             });
             
             console.log("🔍 Opening Farcaster compose page!");
@@ -1747,6 +1748,11 @@ const FlappyBirdGame: React.FC = () => {
                         </div>
                     </div>
                     
+                    {/* Token Balance Display - Mobile */}
+                    <div className="relative z-10 w-full max-w-xs mb-6">
+                        <TokenBalanceDisplay compact={true} showTitle={false} />
+                    </div>
+                    
                     <div className="relative z-10 space-y-6 w-full max-w-xs">
                         <button 
                             className="w-full py-6 px-8 bg-gradient-to-r from-blue-500/80 to-indigo-600/80 backdrop-blur-sm text-white text-xl rounded-3xl font-bold shadow-2xl active:scale-95 border border-white/30 transition-all duration-200 hover:from-blue-600/90 hover:to-indigo-700/90 relative overflow-hidden group" 
@@ -1835,7 +1841,12 @@ const FlappyBirdGame: React.FC = () => {
                             </div>
                         </div>
                         
-                        <p className="text-lg text-blue-100 font-semibold mb-8">Navigate the L2 blockchain!</p>
+                        <p className="text-lg text-blue-100 font-semibold mb-6">Navigate the L2 blockchain!</p>
+                        
+                        {/* Token Balance Display - Desktop */}
+                        <div className="mb-6">
+                            <TokenBalanceDisplay showTitle={true} />
+                        </div>
                         
                         <div className="space-y-4 mb-6">
                             <button 
@@ -1870,40 +1881,6 @@ const FlappyBirdGame: React.FC = () => {
                             </p>
                         </div>
                         
-                        {/* Debug button - remove this later */}
-                        <button 
-                            className="w-full py-2 px-4 bg-red-500/50 text-white text-sm rounded-lg font-bold shadow active:scale-95 border border-red-300/20 transition-all duration-200 mt-4" 
-                            onClick={() => {
-                                console.log("🔍 Debug - Current state:", { gameOver, gameStarted, mode, pendingGiftBox, showGiftBox });
-                                console.log("🔍 Debug - Setting gameOver to true");
-                                setGameOver(true);
-                                setScore(100); // Set a test score
-                            }}
-                        >
-                            🐛 Debug: Force Game Over
-                        </button>
-                        
-                        {/* Debug button for gift box - remove this later */}
-                        <button 
-                            className="w-full py-2 px-4 bg-green-500/50 text-white text-sm rounded-lg font-bold shadow active:scale-95 border border-green-300/20 transition-all duration-200 mt-2" 
-                            onClick={() => {
-                                console.log("🔍 Debug - Setting showGiftBox to true");
-                                setShowGiftBox(true);
-                            }}
-                        >
-                            🎁 Debug: Force Gift Box
-                        </button>
-                        
-                        {/* Debug button for pending gift box - remove this later */}
-                        <button 
-                            className="w-full py-2 px-4 bg-yellow-500/50 text-white text-sm rounded-lg font-bold shadow active:scale-95 border border-yellow-300/20 transition-all duration-200 mt-2" 
-                            onClick={() => {
-                                console.log("🔍 Debug - Setting pendingGiftBox to true");
-                                setPendingGiftBox(true);
-                            }}
-                        >
-                            🎁 Debug: Force Pending Gift Box
-                        </button>
                     </div>
                 </div>
             </div>
@@ -2732,12 +2709,12 @@ const FlappyBirdGame: React.FC = () => {
                         >
                             ⚡
                         </button>
-                        <button 
-                            className="bg-black/50 backdrop-blur-sm py-2 px-4 text-white text-sm rounded-full font-bold shadow active:scale-95 transition-all duration-200" 
-                            onClick={() => setMode("")}
-                        >
-                            Menu
-                        </button>
+                    <button 
+                        className="bg-black/50 backdrop-blur-sm py-2 px-4 text-white text-sm rounded-full font-bold shadow active:scale-95 transition-all duration-200" 
+                        onClick={() => setMode("")}
+                    >
+                        Menu
+                    </button>
                     </div>
                 </div>
                 
@@ -2763,7 +2740,7 @@ const FlappyBirdGame: React.FC = () => {
                 <div className="mt-3 text-center">
                     <p className="text-sm text-gray-600">Tap screen to jump!</p>
                     <div className="flex gap-2 justify-center mt-2">
-                        <button 
+                    <button 
                             className="py-2 px-3 bg-gradient-to-r from-blue-400 to-blue-600 text-white text-sm rounded-xl font-bold shadow active:scale-95 transition-all duration-200" 
                             onClick={() => setShowPowerUpGuide(true)}
                             title="Power-ups Guide"
@@ -2772,10 +2749,10 @@ const FlappyBirdGame: React.FC = () => {
                         </button>
                         <button 
                             className="py-2 px-4 bg-gradient-to-r from-gray-400 to-gray-600 text-white text-sm rounded-xl font-bold shadow active:scale-95 transition-all duration-200" 
-                            onClick={() => setMode("")}
-                        >
-                            ← Menu
-                        </button>
+                        onClick={() => setMode("")}
+                    >
+                        ← Menu
+                    </button>
                     </div>
                 </div>
             </div>
