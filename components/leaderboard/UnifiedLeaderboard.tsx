@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from 'react'
 import { useAccount } from 'wagmi'
-import { useLeaderboard } from '../smartcontracthooks'
-import { useCurrentActiveWeek } from '../smartcontracthooks/useWeeklyEvents'
+import { useLeaderboard } from '../../smartcontracthooks'
+import { useCurrentActiveWeek } from '../../smartcontracthooks/useWeeklyEvents'
 
 const UnifiedLeaderboard: React.FC = () => {
   const { address, isConnected } = useAccount()

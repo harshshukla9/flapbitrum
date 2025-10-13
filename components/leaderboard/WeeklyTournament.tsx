@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { useAccount } from 'wagmi'
-import { useCurrentActiveWeek, useCurrentWeekLeaderboard, useUserCurrentWeekStatus, useEventStats } from '../smartcontracthooks/useWeeklyEvents'
-import { LeaderboardEntry } from '../types'
+import { useCurrentActiveWeek, useCurrentWeekLeaderboard, useUserCurrentWeekStatus, useEventStats } from '../../smartcontracthooks/useWeeklyEvents'
+import { LeaderboardEntry } from '../../types'
 
 const WeeklyTournament: React.FC = () => {
   const { address, isConnected } = useAccount()

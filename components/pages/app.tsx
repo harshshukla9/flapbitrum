@@ -2,14 +2,15 @@
 import { Demo } from '@/components/Home'
 import { useFrame } from '@/components/farcaster-provider'
 import { SafeAreaContainer } from '@/components/safe-area-container'
-import FlappyBirdGame from '../FlappyBirdGame'
-import Header from '../Header'
+import FlappyBirdGame from '../game/FlappyBirdGame'
+import Header from '../ui/Header'
 import { useEffect, useState } from 'react'
 import { actionSchema } from '@farcaster/miniapp-core'
 
 export default function Home() {
-  const { context, isLoading, isSDKLoaded,actions } = useFrame()
+  const { context, isLoading, isSDKLoaded, actions, isTunnelUrl, environment } = useFrame()
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+  const [showDevWarnings, setShowDevWarnings] = useState(true)
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -20,10 +21,91 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    if(isSDKLoaded){
-    actions?.addFrame();
+    if (isSDKLoaded && context) {
+      console.log('✅ Farcaster SDK loaded with context:', context)
+      // SDK is ready and context is available
+      // No need to call addFrame() - it's handled by the SDK
     }
-  }, [isSDKLoaded])
+  }, [isSDKLoaded, context])
+
+  // Development warnings component
+  const DevWarnings = () => {
+    if (environment !== 'development' || !showDevWarnings) return null
+
+    return (
+      <div className="fixed top-4 left-4 right-4 z-50 space-y-3">
+        {/* SDK Ready Warning */}
+        {!isSDKLoaded && (
+          <div className="bg-yellow-900/90 backdrop-blur-sm border border-yellow-500/50 rounded-lg p-4 text-yellow-100">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="font-bold text-yellow-200 mb-2">Ready not called</h3>
+                <p className="text-sm text-yellow-100 mb-3">
+                  Your app hasn't called <code className="bg-yellow-800/50 px-2 py-1 rounded text-xs">sdk.actions.ready()</code> yet. This may cause the splash screen to persist.
+                </p>
+                <div className="flex space-x-4 text-sm">
+                  <a 
+                    href="https://docs.farcaster.xyz/miniapps/sdk/reference/actions/ready" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-300 hover:text-blue-200 underline"
+                  >
+                    View documentation
+                  </a>
+                  <button 
+                    onClick={() => setShowDevWarnings(false)}
+                    className="text-gray-300 hover:text-gray-200 underline"
+                  >
+                    Hide splash screen for now
+                  </button>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowDevWarnings(false)}
+                className="text-yellow-300 hover:text-yellow-200 ml-4"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Tunnel URL Warning */}
+        {isTunnelUrl && (
+          <div className="bg-blue-900/90 backdrop-blur-sm border border-blue-500/50 rounded-lg p-4 text-blue-100">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="font-bold text-blue-200 mb-2">Tunnel URL detected</h3>
+                <p className="text-sm text-blue-100 mb-3">
+                  Your URL looks like a tunnel. Open it in your browser first to ensure it's working properly.
+                </p>
+                <div className="flex space-x-4 text-sm">
+                  <button 
+                    onClick={() => window.open(window.location.href, '_blank')}
+                    className="text-blue-300 hover:text-blue-200 underline"
+                  >
+                    Open URL in new tab
+                  </button>
+                  <button 
+                    onClick={() => setShowDevWarnings(false)}
+                    className="text-gray-300 hover:text-gray-200 underline"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowDevWarnings(false)}
+                className="text-blue-300 hover:text-blue-200 ml-4"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   if (isLoading) {
     return (
@@ -113,6 +195,7 @@ export default function Home() {
 
   return (
     <SafeAreaContainer insets={context?.client.safeAreaInsets}>
+      <DevWarnings />
       <main className="min-h-screen mobile-fullscreen flex flex-col bg-gradient-to-br from-blue-900 via-indigo-800 to-blue-700 md:px-4 md:py-2 relative overflow-hidden">
                   {/* Dynamic gaming background with mouse tracking */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">

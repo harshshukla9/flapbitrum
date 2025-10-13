@@ -1,16 +1,17 @@
 "use client";
 import React, { useEffect, useRef, useState } from 'react';
-import { useSetScore, useMyGameData } from '../smartcontracthooks';
-import { useSetScoreWithMongo } from '@/smartcontracthooks/useFlappyContractWithMongo';
-import { useCurrentActiveWeek } from '@/smartcontracthooks/useWeeklyEvents';
-import { useAccount, useConnect, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { CONTRACT_ADDRESSES, TOKEN_REWARD_ABI } from '@/lib/claimcontract';
-import { useFrame } from './farcaster-provider';
+import { useSetScore, useMyGameData } from '../../smartcontracthooks';
+import { useSetScoreWithMongo } from '../../smartcontracthooks/useFlappyContractWithMongo';
+import { useCurrentActiveWeek } from '../../smartcontracthooks/useWeeklyEvents';
+import { useAccount, useConnect, useWriteContract, useWaitForTransactionReceipt, useBalance } from 'wagmi';
+import { CONTRACT_ADDRESSES, TOKEN_REWARD_ABI } from '../../lib/claimcontract';
+import { useFrame } from '../farcaster-provider';
 import RewardInfoPopup from './RewardInfoPopup';
 import GiftBox from './GiftBox';
-import TokenBalanceDisplay from './TokenBalanceDisplay';
-import { APP_URL } from '@/lib/constants';
-import { authenticatedFetch } from '@/lib/auth';
+import TokenBalanceDisplay from '../ui/TokenBalanceDisplay';
+import { APP_URL } from '../../lib/constants';
+import { authenticatedFetch } from '../../lib/auth';
+import { formatEther } from 'viem';
 
 export function startGame(
     canvasRef: React.RefObject<HTMLCanvasElement>,
@@ -1205,6 +1206,11 @@ const FlappyBirdGame: React.FC = () => {
     const { connect, connectors } = useConnect();
     const { setScore: saveScoreToContract, isPending: isSavingScore, isSuccess: scoreSaved } = useSetScore();
     
+    // Get ETH balance
+    const { data: ethBalance, isLoading: isLoadingBalance } = useBalance({
+        address: address,
+    });
+    
     // Get current active week
     const { data: currentWeekData } = useCurrentActiveWeek();
     const currentWeek = currentWeekData?.currentWeek;
@@ -1213,7 +1219,7 @@ const FlappyBirdGame: React.FC = () => {
     const { setScore: saveScoreToContractWithMongo, isPending: isSavingScoreWithMongo, isConfirming: isConfirmingTransaction, isSuccess: scoreSavedWithMongo, isMongoUpdating } = useSetScoreWithMongo(currentEventId);
     const { myScore: contractScore, myRank, hasScore, username, fid, pfp } = useMyGameData();
     const [isClient, setIsClient] = useState(false);
-    const { actions, context } = useFrame();
+    const { actions, context, isSDKLoaded } = useFrame();
 
     useEffect(() => {
         setIsClient(true);
@@ -1233,6 +1239,23 @@ const FlappyBirdGame: React.FC = () => {
             console.log("🔍 Home page - User has already seen the popup")
         }
     }, []);
+
+    // Auto-connect wallet when Farcaster SDK is loaded
+    useEffect(() => {
+        const autoConnect = async () => {
+            if (isSDKLoaded && !isConnected && connectors.length > 0) {
+                try {
+                    console.log("🔗 Auto-connecting wallet via Farcaster...");
+                    await connect({ connector: connectors[0] });
+                    console.log("✅ Wallet auto-connected successfully");
+                } catch (error) {
+                    console.error("❌ Auto-connect failed:", error);
+                }
+            }
+        };
+        
+        autoConnect();
+    }, [isSDKLoaded, isConnected, connectors, connect]);
 
     // Debug current state
     console.log("🔍 Current state - Mode:", mode, "Game Started:", gameStarted, "Game Over:", gameOver, "gameOverRef:", gameOverRef.current);
@@ -1658,10 +1681,18 @@ const FlappyBirdGame: React.FC = () => {
         )
     );
 
-    // Wallet Connection Component
+    // Wallet Connection Component with ETH Balance Display
     const WalletConnection = () => (
         <div className="fixed top-4 right-4 z-40">
-            { !isConnected && (
+            {isConnected && address ? (
+               
+                
+                    <div>
+                    
+                  </div>
+                
+               
+            ) : !isSDKLoaded && (
                 <button
                     onClick={() => connect({ connector: connectors[0] })}
                     className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-5 py-3 rounded-2xl font-semibold shadow-2xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 border border-white/20 flex items-center space-x-2 backdrop-blur-sm"
@@ -1763,19 +1794,12 @@ const FlappyBirdGame: React.FC = () => {
                         >
                             <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-indigo-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500 transform -translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
-                            <span className="relative z-10">🎮 Single Player</span>
+                            <span className="relative z-10">🎮 Play</span>
                         </button>
-                        <button 
-                            className="w-full py-6 px-8 bg-gradient-to-r from-purple-500/80 to-pink-600/80 backdrop-blur-sm text-white text-xl rounded-3xl font-bold shadow-2xl active:scale-95 border border-white/30 transition-all duration-200 hover:from-purple-600/90 hover:to-pink-700/90 relative overflow-hidden group" 
-                            onClick={() => setMode("multi")}
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-pink-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-400 to-pink-500 transform -translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
-                            <span className="relative z-10">👥 Multiplayer</span>
-                        </button>
+                       
                         <button 
                             className="w-full py-6 px-8 bg-gradient-to-r from-yellow-500/80 to-orange-600/80 backdrop-blur-sm text-white text-xl rounded-3xl font-bold shadow-2xl active:scale-95 border border-white/30 transition-all duration-200 hover:from-yellow-600/90 hover:to-orange-700/90 relative overflow-hidden group" 
-                            onClick={() => window.location.href = '/unified-leaderboard'}
+                            onClick={() => window.location.href = '/dual-leaderboard'}
                         >
                             <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/20 to-orange-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-400 to-orange-500 transform -translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
@@ -1786,8 +1810,6 @@ const FlappyBirdGame: React.FC = () => {
                     <div className="relative z-10 mt-8 text-center">
                         <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
                             <p className="text-sm text-blue-100">
-                                💰 Top 15 players share the reward pool<br/>
-                                🔗 Connect wallet to save scores<br/>
                                 📢 Share achievements on Farcaster
                             </p>
                         </div>
@@ -1867,7 +1889,7 @@ const FlappyBirdGame: React.FC = () => {
                             </button>
                             <button 
                                 className="w-full py-4 px-6 bg-gradient-to-r from-yellow-500 to-orange-600 text-white text-lg rounded-2xl font-bold shadow-lg active:scale-95 hover:from-yellow-600 hover:to-orange-700 transition-all duration-200 border border-white/20 relative overflow-hidden group" 
-                                onClick={() => window.location.href = '/unified-leaderboard'}
+                                onClick={() => window.location.href = '/dual-leaderboard'}
                             >
                                 <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/20 to-orange-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-400 to-orange-500 transform -translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
@@ -1954,7 +1976,7 @@ const FlappyBirdGame: React.FC = () => {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <span>💰</span>
-                                    <span>Prize pools and rewards</span>
+                                    <span>Dual Leaderboard</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <span>🎯</span>
@@ -2045,269 +2067,236 @@ const FlappyBirdGame: React.FC = () => {
                 <CountdownOverlay />
                 <LoadingOverlay />
                 <div ref={cardRef} className={`${cardStyle} animate-fadein`}>
-                {/* Mobile fullscreen difficulty selection */}
-                <div className="md:hidden min-h-screen w-[390px] flex flex-col justify-center items-center p-8 bg-gradient-to-br from-blue-900/95 via-indigo-800/95 to-blue-700/95 text-white relative overflow-hidden">
-                    {/* Animated background elements */}
-                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                        <div className="absolute top-20 left-10 w-40 h-40 bg-blue-400/10 rounded-full blur-3xl animate-pulse"></div>
-                        <div className="absolute bottom-20 right-10 w-32 h-32 bg-indigo-400/10 rounded-full blur-2xl animate-pulse delay-1000"></div>
-                    </div>
-                    
-                    <div className="relative z-10 flex-1 flex flex-col justify-center items-center px-4">
-                        {/* Header */}
-                        <div className="text-center mb-8">
-                            <div className="flex items-center justify-center gap-3 mb-4">
-                                <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center shadow-lg">
-                                    <img src="/images/logo.png" alt="Flapbitrum Logo" className="w-8 h-8 object-contain" />
-                                </div>
-                                <h1 className="text-3xl font-extrabold text-white drop-shadow-lg">Choose Your Challenge</h1>
-                            </div>
-                            <p className="text-lg opacity-90 font-medium text-blue-100">Select your difficulty level and earn rewards</p>
-                            <div className="flex items-center justify-center gap-2 mt-3">
-                                <span className="text-xs bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-300 px-3 py-1 rounded-full border border-yellow-400/30 backdrop-blur-sm">
-                                    ⚡ Higher Difficulty = More Rewards
-                                </span>
-                            </div>
+                    {/* Mobile fullscreen game start */}
+                    <div className="md:hidden min-h-screen w-full flex flex-col justify-center items-center p-6 bg-gradient-to-br from-blue-900/95 via-indigo-800/95 to-blue-700/95 text-white relative overflow-hidden">
+                        {/* Animated background elements */}
+                        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                            <div className="absolute top-20 left-10 w-40 h-40 bg-blue-400/10 rounded-full blur-3xl animate-pulse"></div>
+                            <div className="absolute bottom-20 right-10 w-32 h-32 bg-indigo-400/10 rounded-full blur-2xl animate-pulse delay-1000"></div>
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-red-500/5 rounded-full blur-3xl"></div>
                         </div>
-
-                        {/* Difficulty Cards */}
-                        <div className="grid grid-cols-1 gap-6 w-full max-w-sm">
-                            {/* Beginner Card */}
-                            <div 
-                                className="group relative bg-gradient-to-br from-green-500/20 to-emerald-600/20 backdrop-blur-sm rounded-2xl border border-green-400/30 overflow-hidden cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-2xl active:scale-95"
-                                onClick={() => {
-                                    console.log("🔍 Beginner clicked");
-                                    handleStartGame("beginner");
-                                }}
-                            >
-                                {/* Card Background Effects */}
-                                <div className="absolute inset-0 bg-gradient-to-br from-green-400/10 to-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-400 to-emerald-500"></div>
-                                
-                                <div className="relative z-10 p-6">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-lg">
-                                                <span className="text-2xl">🌱</span>
-                                            </div>
-                                            <div>
-                                                <h3 className="text-xl font-bold text-white">Beginner</h3>
-                                                <p className="text-sm text-green-300">Perfect for new players</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-2xl font-bold text-green-400">Easy</div>
-                                            <div className="text-xs text-green-300">Slow Speed</div>
-                                        </div>
-                            </div>
-                            
-                                    <div className="bg-black/20 rounded-xl p-4 mb-4">
-                                        <div className="flex items-center justify-center gap-6">
-                                            <div className="text-center">
-                                                <div className="text-lg font-bold text-white">🎯 +1</div>
-                                                <div className="text-xs text-gray-300">Pipe Points</div>
-                                            </div>
-                                            <div className="w-px h-8 bg-white/20"></div>
-                                            <div className="text-center">
-                                                <div className="text-lg font-bold text-white">🪙 +1</div>
-                                                <div className="text-xs text-gray-300">Coin Points</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="flex items-center justify-center">
-                                        <span className="text-sm font-semibold text-green-300">
-                                            👆 Tap to Start
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Intermediate Card */}
-                            <div 
-                                className="group relative bg-gradient-to-br from-yellow-500/20 to-orange-600/20 backdrop-blur-sm rounded-2xl border border-yellow-400/30 overflow-hidden cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-2xl active:scale-95"
-                                onClick={() => handleStartGame("intermediate")}
-                            >
-                                {/* Card Background Effects */}
-                                <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/10 to-orange-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-400 to-orange-500"></div>
-                                
-                                <div className="relative z-10 p-6">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
-                                                <span className="text-2xl">⚡</span>
-                                            </div>
-                                            <div>
-                                                <h3 className="text-xl font-bold text-white">Intermediate</h3>
-                                                <p className="text-sm text-yellow-300">For skilled players</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-sm font-bold text-yellow-400">Medium</div>
-                                            <div className="text-xs text-yellow-300">Normal Speed</div>
-                                        </div>
-                            </div>
-                            
-                                    <div className="bg-black/20 rounded-xl p-4 mb-4">
-                                        <div className="flex items-center justify-center gap-6">
-                                            <div className="text-center">
-                                                <div className="text-lg font-bold text-white">🎯 +2</div>
-                                                <div className="text-xs text-gray-300">Pipe Points</div>
-                                            </div>
-                                            <div className="w-px h-8 bg-white/20"></div>
-                                            <div className="text-center">
-                                                <div className="text-lg font-bold text-white">🪙 +1</div>
-                                                <div className="text-xs text-gray-300">Coin Points</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="flex items-center justify-center">
-                                        <span className="text-sm font-semibold text-yellow-300">
-                                            👆 Tap to Start
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Expert Card */}
-                            <div 
-                                className="group relative bg-gradient-to-br from-red-500/20 to-pink-600/20 backdrop-blur-sm rounded-2xl border border-red-400/30 overflow-hidden cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-2xl active:scale-95"
-                                onClick={() => handleStartGame("expert")}
-                            >
-                                {/* Card Background Effects */}
-                                <div className="absolute inset-0 bg-gradient-to-br from-red-400/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-400 to-pink-500"></div>
-                                
-                                <div className="relative z-10 p-6">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 bg-gradient-to-br from-red-400 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
-                                                <span className="text-2xl">🔥</span>
-                                            </div>
-                                            <div>
-                                                <h3 className="text-xl font-bold text-white">Expert</h3>
-                                                <p className="text-sm text-red-300">Maximum challenge</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-2xl font-bold text-red-400">Hard</div>
-                                            <div className="text-xs text-red-300">Fast Speed</div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="bg-black/20 rounded-xl p-4 mb-4">
-                                        <div className="flex items-center justify-center gap-6">
-                                            <div className="text-center">
-                                                <div className="text-lg font-bold text-white">🎯 +3</div>
-                                                <div className="text-xs text-gray-300">Pipe Points</div>
-                                            </div>
-                                            <div className="w-px h-8 bg-white/20"></div>
-                                            <div className="text-center">
-                                                <div className="text-lg font-bold text-white">🪙 +1</div>
-                                                <div className="text-xs text-gray-300">Coin Points</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="flex items-center justify-center">
-                                        <span className="text-sm font-semibold text-red-300">
-                                            👆 Tap to Start
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Pro Tip */}
-                        <div className="mt-8 text-center">
-                            <div className="bg-blue-500/10 backdrop-blur-sm rounded-xl p-4 border border-blue-400/30 max-w-sm">
-                                <p className="text-sm text-blue-200">
-                                    💡 <strong>Pro Tip:</strong> Higher difficulty levels give more points per pipe, but the game moves faster!
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="relative z-10 w-full flex justify-center">
-                        <button 
-                            className="py-3 mt-3 px-6 bg-white/10 backdrop-blur-sm text-white rounded-2xl font-bold shadow active:scale-95 border border-white/20 transition-all duration-200" 
-                            onClick={() => setMode("")}
-                        >
-                            ← Back to Menu
-                        </button>
-                    </div>
-                </div>
-                
-                {/* Desktop difficulty selection */}
-                <div className="hidden md:block p-8 text-center bg-gradient-to-br from-blue-800/90 via-indigo-700/90 to-blue-600/90 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 relative overflow-hidden">
-                    {/* Animated background elements */}
-                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-400/30 to-transparent animate-pulse"></div>
-                        <div className="absolute bottom-0 right-0 w-32 h-32 bg-blue-400/5 rounded-full blur-2xl animate-pulse delay-1000"></div>
-                    </div>
-                    
-                    <div className="relative z-10">
-                        <div className="flex items-center justify-center gap-3 mb-6">
-                            <div className="relative">
-                                <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center shadow-lg">
-                                    <span className="text-2xl">🔵</span>
-                                </div>
-                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white animate-pulse"></div>
-                            </div>
-                            <h1 className="text-3xl font-extrabold text-white drop-shadow-lg">Flapbitrum</h1>
-                        </div>
-                        <p className="mb-6 text-lg font-semibold text-blue-100">Select Difficulty Level</p>
-                        <div className="space-y-4 mb-6">
-                            <div className="text-center">
+                        
+                        <div className="relative z-10 flex-1 flex flex-col justify-between items-center w-full max-w-md">
+                            {/* Back Button */}
+                            <div className="w-full flex justify-start pt-[-50px]">
                                 <button 
-                                    className="w-full py-4 px-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-lg rounded-2xl font-bold shadow-lg active:scale-95 hover:from-green-600 hover:to-emerald-700 transition-all duration-200 border border-white/20" 
-                                    onClick={() => handleStartGame("beginner")}
+                                    className="py-2 px-4 bg-white/10 backdrop-blur-sm text-white rounded-xl font-semibold shadow active:scale-95 border border-white/20 transition-all duration-200 flex items-center gap-2" 
+                                    onClick={() => setMode("")}
                                 >
-                                    🟢 Beginner
+                                    <span>←</span>
+                                    <span className="text-sm">Back</span>
                                 </button>
-                                <div className="mt-2 text-sm text-blue-100 bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-                                    <p className="font-semibold text-green-300">🎯 Pipe: +1 point | 🪙 Coin: +1 point</p>
-                                    <p>Perfect for new players! Includes power-ups: 🛡️ Shield, ⚡ Speed, ✨ 2X Score, 💎 Bonus</p>
-                                </div>
                             </div>
-                            
-                            <div className="text-center">
-                                <button 
-                                    className="w-full py-4 px-6 bg-gradient-to-r from-yellow-500 to-orange-600 text-white text-lg rounded-2xl font-bold shadow-lg active:scale-95 hover:from-yellow-600 hover:to-orange-700 transition-all duration-200 border border-white/20" 
-                                    onClick={() => handleStartGame("intermediate")}
-                                >
-                                    🟡 Intermediate
-                                </button>
-                                <div className="mt-2 text-sm text-blue-100 bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-                                    <p className="font-semibold text-yellow-300">🎯 Pipe: +2 points | 🪙 Coin: +1 point</p>
-                                    <p>Better rewards for skilled players! More power-ups: 🛡️ Shield, ⚡ Speed, ✨ 2X Score, 💎 Bonus</p>
+    
+                            {/* Main Content */}
+                            <div className="flex flex-col items-center justify-center flex-1 w-full px-4">
+                                {/* Header */}
+                                <div className="text-center mb-8">
+                                    <div className="flex items-center justify-center gap-3 mb-4">
+                                        <div className="w-16 h-15 bg-gradient-to-br from-red-400 to-pink-500 rounded-full flex items-center justify-center shadow-2xl animate-pulse">
+                                            <span className="text-4xl">
+                                                <img src='/images/logo.png' alt='Flapbitrum Logo' className='w-16 h-16 object-contain rounded-full' />
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <h1 className="text-4xl font-extrabold text-white drop-shadow-lg mb-3">Play Now</h1>
+                                    <p className="text-lg text-blue-100 mb-2">Maximum Challenge</p>
+                                    <div className="flex items-center justify-center gap-2">
+                                        <span className="text-xs bg-gradient-to-r from-red-500/20 to-pink-500/20 text-red-300 px-4 py-2 rounded-full border border-red-400/30 backdrop-blur-sm font-semibold">
+                                            ⚡ GFlappy
+                                        </span>
+                                    </div>
                                 </div>
-                            </div>
-                            
-                            <div className="text-center">
-                                <button 
-                                    className="w-full py-4 px-6 bg-gradient-to-r from-red-500 to-pink-600 text-white text-lg rounded-2xl font-bold shadow-lg active:scale-95 hover:from-red-600 hover:to-pink-700 transition-all duration-200 border border-white/20" 
+    
+                                {/* Stats Card */}
+                                <div className="w-full bg-gradient-to-br from-red-500/20 to-pink-600/20 backdrop-blur-sm rounded-2xl border border-red-400/30 p-6 mb-6 shadow-2xl">
+                                    <h3 className="text-center text-lg font-bold text-white mb-4">Scoring System</h3>
+                                    
+                                    <div className="bg-black/30 rounded-xl p-4 mb-4">
+                                        <div className="flex items-center justify-center gap-8">
+                                            <div className="text-center">
+                                                <div className="text-3xl mb-2">🎯</div>
+                                                <div className="text-2xl font-bold text-white">+3</div>
+                                                <div className="text-xs text-gray-300 mt-1">Per Pipe</div>
+                                            </div>
+                                            <div className="w-px h-16 bg-white/20"></div>
+                                            <div className="text-center">
+                                                <div className="text-3xl mb-2">🪙</div>
+                                                <div className="text-2xl font-bold text-white">+1</div>
+                                                <div className="text-xs text-gray-300 mt-1">Per Coin</div>
+                                            </div>
+                                        </div>
+                                    </div>
+    
+                                    {/* Power-ups */}
+                                    <div className="bg-black/20 rounded-xl p-4">
+                                        <div className="text-center mb-3">
+                                            <span className="text-sm font-bold text-yellow-300">🎁 Power-ups Available</span>
+                                        </div>
+                                        <div className="grid grid-cols-4 gap-2">
+                                            <div className="text-center">
+                                                <div className="text-2xl mb-1">🛡️</div>
+                                                <div className="text-xs text-gray-300">Shield</div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-2xl mb-1">⚡</div>
+                                                <div className="text-xs text-gray-300">Speed</div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-2xl mb-1">✨</div>
+                                                <div className="text-xs text-gray-300">2X Score</div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-2xl mb-1">💎</div>
+                                                <div className="text-xs text-gray-300">Bonus</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+    
+                                {/* Start Button */}
+                                <button
+                                    className="w-full py-5 bg-gradient-to-r from-red-500 to-pink-600 text-white text-xl rounded-2xl font-bold shadow-2xl active:scale-95 hover:from-red-600 hover:to-pink-700 transition-all duration-200 border-2 border-red-300/50 flex items-center justify-center gap-3"
                                     onClick={() => handleStartGame("expert")}
                                 >
-                                    🔴 Expert
+                                    
+                                    <span>Time to Flap</span>
+                                   
                                 </button>
-                                <div className="mt-2 text-sm text-blue-100 bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-                                    <p className="font-semibold text-red-300">🎯 Pipe: +3 points | 🪙 Coin: +1 point</p>
-                                    <p>Maximum rewards for pros! Rare power-ups: 🛡️ Shield, ⚡ Speed, ✨ 2X Score, 💎 Bonus</p>
+    
+                                {/* Pro Tip */}
+                                <div className="mt-6 bg-blue-500/10 backdrop-blur-sm rounded-xl p-4 border border-blue-400/30 w-full">
+                                    <div className="flex items-start gap-3">
+                                        <span className="text-2xl">💡</span>
+                                        <div>
+                                            <h4 className="text-sm font-bold text-blue-200 mb-1">Pro Tip</h4>
+                                            <p className="text-xs text-gray-300">
+                                                Collect power-ups to boost your score and survive longer!
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+    
+                            {/* Footer Space */}
+                            <div className="pb-4"></div>
+                        </div>
+                    </div>
+                    
+                    {/* Desktop game start */}
+                    <div className="hidden md:block p-8 text-center bg-gradient-to-br from-blue-800/90 via-indigo-700/90 to-blue-600/90 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 relative overflow-hidden max-w-2xl mx-auto">
+                        {/* Animated background elements */}
+                        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-400/30 to-transparent animate-pulse"></div>
+                            <div className="absolute bottom-0 right-0 w-32 h-32 bg-red-400/5 rounded-full blur-2xl animate-pulse delay-1000"></div>
+                        </div>
+                        
+                        <div className="relative z-10">
+                            {/* Header */}
+                            <div className="flex items-center justify-center gap-4 mb-6">
+                                <div className="relative">
+                                    <div className="w-16 h-16 bg-gradient-to-br from-red-400 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
+                                        <img src="/images/logo.png" alt="Flapbitrum Logo" className="w-10 h-10 object-contain" />
+                                    </div>
+                                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-400 rounded-full border-2 border-white animate-pulse"></div>
+                                </div>
+                                <div className="text-left">
+                                    <h1 className="text-4xl font-extrabold text-white drop-shadow-lg">Flapbitrum</h1>
+                                    <p className="text-sm text-red-300 font-semibold">Play now</p>
+                                </div>
+                            </div>
+    
+                            {/* Main Content */}
+                            <div className="bg-gradient-to-br from-red-500/20 to-pink-600/20 backdrop-blur-sm rounded-2xl border border-red-400/30 p-8 mb-6">
+                                <div className="flex items-center justify-center gap-3 mb-6">
+                                    <div className="w-20 h-20 bg-gradient-to-br from-red-400 to-pink-500 rounded-full flex items-center justify-center shadow-2xl">
+                                        <span className="text-5xl">🔥</span>
+                                    </div>
+                                </div>
+                                
+                                <h2 className="text-3xl font-bold text-white mb-3">Expert Challenge</h2>
+                                <p className="text-lg text-red-200 mb-6">Fast Speed • Maximum Difficulty • Best Rewards</p>
+    
+                                {/* Stats */}
+                                <div className="bg-black/30 rounded-2xl p-6 mb-6">
+                                    <h3 className="text-xl font-bold text-white mb-4">Scoring System</h3>
+                                    <div className="flex items-center justify-center gap-12">
+                                        <div className="text-center">
+                                            <div className="text-4xl mb-2">🎯</div>
+                                            <div className="text-3xl font-bold text-white">+3</div>
+                                            <div className="text-sm text-gray-300 mt-2">Points per Pipe</div>
+                                        </div>
+                                        <div className="w-px h-24 bg-white/20"></div>
+                                        <div className="text-center">
+                                            <div className="text-4xl mb-2">🪙</div>
+                                            <div className="text-3xl font-bold text-white">+1</div>
+                                            <div className="text-sm text-gray-300 mt-2">Points per Coin</div>
+                                        </div>
+                                    </div>
+                                </div>
+    
+                                {/* Power-ups */}
+                                <div className="bg-black/20 rounded-xl p-6">
+                                    <div className="text-center mb-4">
+                                        <span className="text-lg font-bold text-yellow-300">🎁 Available Power-ups</span>
+                                    </div>
+                                    <div className="grid grid-cols-4 gap-4">
+                                        <div className="bg-white/5 rounded-lg p-4 text-center hover:bg-white/10 transition-colors">
+                                            <div className="text-3xl mb-2">🛡️</div>
+                                            <div className="text-sm text-gray-300 font-semibold">Shield</div>
+                                            <div className="text-xs text-gray-400 mt-1">Protection</div>
+                                        </div>
+                                        <div className="bg-white/5 rounded-lg p-4 text-center hover:bg-white/10 transition-colors">
+                                            <div className="text-3xl mb-2">⚡</div>
+                                            <div className="text-sm text-gray-300 font-semibold">Speed Boost</div>
+                                            <div className="text-xs text-gray-400 mt-1">Go faster</div>
+                                        </div>
+                                        <div className="bg-white/5 rounded-lg p-4 text-center hover:bg-white/10 transition-colors">
+                                            <div className="text-3xl mb-2">✨</div>
+                                            <div className="text-sm text-gray-300 font-semibold">2X Score</div>
+                                            <div className="text-xs text-gray-400 mt-1">Double points</div>
+                                        </div>
+                                        <div className="bg-white/5 rounded-lg p-4 text-center hover:bg-white/10 transition-colors">
+                                            <div className="text-3xl mb-2">💎</div>
+                                            <div className="text-sm text-gray-300 font-semibold">Bonus</div>
+                                            <div className="text-xs text-gray-400 mt-1">Extra points</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+    
+                            {/* Buttons */}
+                            <div className="space-y-4">
+                                <button 
+                                    className="w-full py-5 px-6 bg-gradient-to-r from-red-500 to-pink-600 text-white text-2xl rounded-2xl font-bold shadow-2xl active:scale-95 hover:from-red-600 hover:to-pink-700 transition-all duration-200 border-2 border-red-300/50 flex items-center justify-center gap-3" 
+                                    onClick={() => handleStartGame("expert")}
+                                >
+                                    <span>🚀</span>
+                                    <span>Play  Now</span>
+                                    <span>🔥</span>
+                                </button>
+                                
+                                <button 
+                                    className="w-full py-3 px-6 bg-gradient-to-r from-gray-500 to-gray-700 text-white rounded-2xl font-bold shadow active:scale-95 transition-all duration-200 border border-white/20" 
+                                    onClick={() => setMode("")}
+                                >
+                                    ← Back to Menu
+                                </button>
+                            </div>
+    
+                            {/* Pro Tip */}
+                            <div className="mt-6 bg-blue-500/10 backdrop-blur-sm rounded-xl p-4 border border-blue-400/30">
+                                <div className="flex items-center justify-center gap-3">
+                                    <span className="text-2xl">💡</span>
+                                    <p className="text-sm text-gray-300">
+                                        <span className="font-bold text-blue-200">Pro Tip:</span> Collect power-ups strategically to maximize your score and survival time!
+                                    </p>
                                 </div>
                             </div>
                         </div>
-                        <button 
-                            className="w-full py-3 px-6 bg-gradient-to-r from-gray-500 to-gray-700 text-white rounded-2xl font-bold shadow active:scale-95 transition-all duration-200 border border-white/20" 
-                            onClick={() => setMode("")}
-                        >
-                            ← Back to Menu
-                        </button>
                     </div>
                 </div>
-            </div>
-        </>
+            </>
         );
     }
 
@@ -2393,7 +2382,7 @@ const FlappyBirdGame: React.FC = () => {
                                     )}
                                     
                                 </div>
-                            ) : isClient && (
+                            ) : isClient && !isSDKLoaded && (
                                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6">
                                     <h4 className="text-lg font-semibold mb-2 text-blue-200">🔗 Connect Wallet</h4>
                                     <p className="text-sm text-blue-300 mb-3">Connect your wallet to save scores to the blockchain!</p>
@@ -2556,7 +2545,7 @@ const FlappyBirdGame: React.FC = () => {
                                 )}
                                 
                             </div>
-                        ) : isClient && (
+                        ) : isClient && !isSDKLoaded && (
                             <div className="bg-gray-50 rounded-xl p-4 mb-4 border border-gray-200">
                                 <h4 className="text-lg font-semibold mb-2 text-gray-700">🔗 Connect Wallet</h4>
                                 <p className="text-sm text-gray-600 mb-3">Connect your wallet to save scores to the blockchain!</p>

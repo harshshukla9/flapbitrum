@@ -48,7 +48,7 @@ const TokenBalanceDisplay: React.FC<TokenBalanceDisplayProps> = ({
             {balances.map((balance) => (
               <div key={balance.token} className="flex items-center justify-center space-x-1 min-w-0">
                 <TokenIcon balance={balance} size="sm" />
-                <span className="text-xs text-white/80 font-medium truncate">{balance.formattedBalance}</span>
+                <span className="text-xs text-white/80 font-medium truncate">{parseFloat(balance.formattedBalance).toFixed(5)}</span>
               </div>
             ))}
           </div>
