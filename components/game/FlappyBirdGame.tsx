@@ -2678,11 +2678,7 @@ const FlappyBirdGame: React.FC = () => {
                         <h2 className="text-xl font-bold text-white drop-shadow">Score: {score}</h2>
                     </div>
                     <div className="bg-black/50 backdrop-blur-sm px-3 py-1 rounded-full">
-                        <h3 className="text-sm font-bold text-white drop-shadow capitalize">{level}</h3>
-                        <h4 className="text-xs text-white/80 drop-shadow">
-                            {level === 'beginner' ? '🎯+1 🪙+1' : 
-                             level === 'intermediate' ? '🎯+2 🪙+1' : '🎯+3 🪙+1'}
-                        </h4>
+                        
                         <div className="w-full bg-black/30 rounded-full h-1 mt-1">
                             <div 
                                 className="bg-gradient-to-r from-blue-400 to-indigo-500 h-1 rounded-full transition-all duration-300"
@@ -2690,21 +2686,7 @@ const FlappyBirdGame: React.FC = () => {
                             ></div>
                         </div>
                     </div>
-                    <div className="flex gap-2">
-                        <button 
-                            className="bg-black/50 backdrop-blur-sm py-2 px-3 text-white text-sm rounded-full font-bold shadow active:scale-95 transition-all duration-200" 
-                            onClick={() => setShowPowerUpGuide(true)}
-                            title="Power-ups Guide"
-                        >
-                            ⚡
-                        </button>
-                    <button 
-                        className="bg-black/50 backdrop-blur-sm py-2 px-4 text-white text-sm rounded-full font-bold shadow active:scale-95 transition-all duration-200" 
-                        onClick={() => setMode("")}
-                    >
-                        Menu
-                    </button>
-                    </div>
+                   
                 </div>
                 
                 {/* Instructions and Difficulty Info */}
