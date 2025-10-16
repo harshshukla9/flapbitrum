@@ -22,9 +22,10 @@ export function startGame(
     setDifficulty: React.Dispatch<React.SetStateAction<number>>,
     level: string,
     canvasDimensions: { width: number; height: number },
-    onGameOver?: (finalScore: number) => void
+    onGameOver?: (finalScore: number) => void,
+    resetSuccess?: () => void
 ) {
-    startGameLogic(canvasRef, setGameStarted, setGameOver, gameOverRef, setScore, setDifficulty, level, canvasDimensions, onGameOver);
+    startGameLogic(canvasRef, setGameStarted, setGameOver, gameOverRef, setScore, setDifficulty, level, canvasDimensions, onGameOver, resetSuccess);
 }
 
 function startGameLogic(
@@ -36,7 +37,8 @@ function startGameLogic(
     setDifficulty: React.Dispatch<React.SetStateAction<number>>,
     level: string,
     canvasDimensions: { width: number; height: number },
-    onGameOver?: (finalScore: number) => void
+    onGameOver?: (finalScore: number) => void,
+    resetSuccess?: () => void
 ) {
     const canvas = canvasRef.current;
     if (!canvas) {
@@ -1069,6 +1071,10 @@ function startGameLogic(
                     gameOverRef.current = false;
                     score = 0;
                     setScore(score);
+                    // Reset score save success state
+                    if (resetSuccess) {
+                        resetSuccess();
+                    }
                 }
             }
         };
@@ -1094,6 +1100,10 @@ function startGameLogic(
                 gameOverRef.current = false;
                 score = 0;
                 setScore(score);
+                // Reset score save success state
+                if (resetSuccess) {
+                    resetSuccess();
+                }
             }
         };
 
@@ -1118,6 +1128,10 @@ function startGameLogic(
                 gameOverRef.current = false;
                 score = 0;
                 setScore(score);
+                // Reset score save success state
+                if (resetSuccess) {
+                    resetSuccess();
+                }
             }
         };
 
@@ -1216,7 +1230,7 @@ const FlappyBirdGame: React.FC = () => {
     const currentWeek = currentWeekData?.currentWeek;
     const currentEventId = currentWeek?.eventId || 'week-2';
     
-    const { setScore: saveScoreToContractWithMongo, isPending: isSavingScoreWithMongo, isConfirming: isConfirmingTransaction, isSuccess: scoreSavedWithMongo, isMongoUpdating } = useSetScoreWithMongo(currentEventId);
+    const { setScore: saveScoreToContractWithMongo, isPending: isSavingScoreWithMongo, isConfirming: isConfirmingTransaction, isSuccess: scoreSavedWithMongo, isMongoUpdating, resetSuccess } = useSetScoreWithMongo(currentEventId);
     const { myScore: contractScore, myRank, hasScore, username, fid, pfp } = useMyGameData();
     const [isClient, setIsClient] = useState(false);
     const { actions, context, isSDKLoaded } = useFrame();
@@ -1299,6 +1313,10 @@ const FlappyBirdGame: React.FC = () => {
         setShowGiftBox(false); // Reset gift box modal
         setGiftBoxReward(null); // Reset gift box reward
         setIsClaimingGiftBox(false); // Reset claiming state
+        // Reset score save success state
+        if (resetSuccess) {
+            resetSuccess();
+        }
         
         // Clear canvas if it exists
         if (canvasRef.current) {
@@ -1599,7 +1617,7 @@ const FlappyBirdGame: React.FC = () => {
             console.log("🔍 Initializing game after loading...");
             
             // Start the actual game after loading finishes
-            startGame(canvasRef, setGameStarted, setGameOver, gameOverRef, setScore, setDifficulty, level, canvasDimensions, handleGameOver);
+            startGame(canvasRef, setGameStarted, setGameOver, gameOverRef, setScore, setDifficulty, level, canvasDimensions, handleGameOver, resetSuccess);
         }
     }, [gameStarted, level, canvasDimensions, showCountdown, isLoading]);
 
