@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useSetScore, useMyGameData } from '../../smartcontracthooks';
 import { useSetScoreWithMongo } from '../../smartcontracthooks/useFlappyContractWithMongo';
 import { useCurrentActiveWeek } from '../../smartcontracthooks/useWeeklyEvents';
+import { useStartGame } from '../../smartcontracthooks/useStartGame';
 import { useAccount, useConnect, useWriteContract, useWaitForTransactionReceipt, useBalance } from 'wagmi';
 import { CONTRACT_ADDRESSES, TOKEN_REWARD_ABI } from '../../lib/claimcontract';
 import { useFrame } from '../farcaster-provider';
@@ -1232,6 +1233,7 @@ const FlappyBirdGame: React.FC = () => {
     
     const { setScore: saveScoreToContractWithMongo, isPending: isSavingScoreWithMongo, isConfirming: isConfirmingTransaction, isSuccess: scoreSavedWithMongo, isMongoUpdating, resetSuccess } = useSetScoreWithMongo(currentEventId);
     const { myScore: contractScore, myRank, hasScore, username, fid, pfp } = useMyGameData();
+    const { startGame: startGameContract, isPending: isStartingGame, isSuccess: gameStartedOnChain, error: startGameError, reset: resetStartGame } = useStartGame();
     const [isClient, setIsClient] = useState(false);
     const { actions, context, isSDKLoaded } = useFrame();
 
@@ -1300,8 +1302,37 @@ const FlappyBirdGame: React.FC = () => {
         }
     }, [mode, gameStarted, gameOver]);
 
-    const handleStartGame = (selectedLevel: string) => {
+    const handleStartGame = async (selectedLevel: string) => {
         console.log("🔍 handleStartGame called with level:", selectedLevel);
+        
+        // First, call the startGame contract function if wallet is connected
+        if (isConnected && address) {
+            try {
+                console.log("🔍 Calling startGame contract function...");
+                await startGameContract();
+                console.log("🔍 startGame contract function completed successfully");
+                
+                // Only start the game after successful transaction
+                startGameAfterTransaction(selectedLevel);
+                // Reset the startGame state for next time
+                resetStartGame();
+            } catch (error) {
+                console.error("🔍 Failed to call startGame contract function:", error);
+                // Reset the startGame state to clear loading
+                resetStartGame();
+                // Show error to user and DON'T start the game
+                alert(`Failed to register game on blockchain: ${error instanceof Error ? error.message : 'Unknown error'}. Game will not start.`);
+                return; // Exit function, don't start the game
+            }
+        } else {
+            // If wallet not connected, show error and don't start game
+            alert("Please connect your wallet to start playing!");
+            return;
+        }
+    };
+
+    const startGameAfterTransaction = (selectedLevel: string) => {
+        console.log("🔍 Starting game after successful transaction...");
         
         // Reset game state completely
         setGameOver(false);
@@ -2174,12 +2205,21 @@ const FlappyBirdGame: React.FC = () => {
     
                                 {/* Start Button */}
                                 <button
-                                    className="w-full py-5 bg-gradient-to-r from-red-500 to-pink-600 text-white text-xl rounded-2xl font-bold shadow-2xl active:scale-95 hover:from-red-600 hover:to-pink-700 transition-all duration-200 border-2 border-red-300/50 flex items-center justify-center gap-3"
+                                    className="w-full py-5 bg-gradient-to-r from-red-500 to-pink-600 text-white text-xl rounded-2xl font-bold shadow-2xl active:scale-95 hover:from-red-600 hover:to-pink-700 transition-all duration-200 border-2 border-red-300/50 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
                                     onClick={() => handleStartGame("expert")}
+                                    disabled={isStartingGame}
                                 >
-                                    
-                                    <span>Time to Flap</span>
-                                   
+                                    {isStartingGame ? (
+                                        <>
+                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            <span>Starting Game...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>🚀</span>
+                                            <span>Time to Flap</span>
+                                        </>
+                                    )}
                                 </button>
     
                                 {/* Pro Tip */}
@@ -2286,12 +2326,22 @@ const FlappyBirdGame: React.FC = () => {
                             {/* Buttons */}
                             <div className="space-y-4">
                                 <button 
-                                    className="w-full py-5 px-6 bg-gradient-to-r from-red-500 to-pink-600 text-white text-2xl rounded-2xl font-bold shadow-2xl active:scale-95 hover:from-red-600 hover:to-pink-700 transition-all duration-200 border-2 border-red-300/50 flex items-center justify-center gap-3" 
+                                    className="w-full py-5 px-6 bg-gradient-to-r from-red-500 to-pink-600 text-white text-2xl rounded-2xl font-bold shadow-2xl active:scale-95 hover:from-red-600 hover:to-pink-700 transition-all duration-200 border-2 border-red-300/50 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed" 
                                     onClick={() => handleStartGame("expert")}
+                                    disabled={isStartingGame}
                                 >
-                                    <span>🚀</span>
-                                    <span>Play  Now</span>
-                                    <span>🔥</span>
+                                    {isStartingGame ? (
+                                        <>
+                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            <span>Starting Game...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>🚀</span>
+                                            <span>Play  Now</span>
+                                            <span>🔥</span>
+                                        </>
+                                    )}
                                 </button>
                                 
                                 <button 

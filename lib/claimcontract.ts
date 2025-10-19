@@ -667,4 +667,6 @@ export const CONTRACT_ADDRESSES = {
       "name": "TransferFailed",
       "inputs": []
     }
-  ]
+  ];
+
+  
