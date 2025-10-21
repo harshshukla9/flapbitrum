@@ -6,7 +6,7 @@ A production-ready template for building mini-apps on Farcaster and Base blockch
 
 - **Flappy Bird Game**: Fully functional game with Arbitrum branding
 - **Farcaster Integration**: Complete SDK integration with frame support
-- **Wallet Connectivity**: Base Sepolia network support with Wagmi
+- **Wallet Connectivity**: Arb network support with Wagmi
 - **Push Notifications**: Webhook-based notification system
 - **Responsive Design**: Mobile-first design with safe area handling
 - **TypeScript**: Full type safety throughout the application
