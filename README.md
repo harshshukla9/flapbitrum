@@ -1,4 +1,4 @@
-# Base Farcaster MiniApp Template
+# Arb Farcaster MiniApp Template
 
 A production-ready template for building mini-apps on Farcaster and Base blockchain, featuring a Flappy Bird game with Arbitrum branding, notification system, and wallet integration.
 
