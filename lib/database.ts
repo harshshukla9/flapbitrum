@@ -14,7 +14,7 @@ export interface UsedAuthKey {
 export interface GiftBoxClaim {
     userAddress: string;
     fid?: number;
-    tokenType: 'arb' | 'pepe' | 'boop' | 'bride' | 'none';
+    tokenType: 'arb' | 'pepe' | 'boop' | 'bribe' | 'none';
     amount: number;
     timestamp: number;
     signature?: string;
@@ -211,7 +211,7 @@ export async function canUserSeeGiftBox(userAddress: string, fid?: number): Prom
 }
 
 export async function generateGiftBoxReward(score: number = 0): Promise<{
-  tokenType: 'arb' | 'pepe' | 'boop' | 'bride' | 'none';
+  tokenType: 'arb' | 'pepe' | 'boop' | 'bribe' | 'none';
   amount: number;
 }> {
   // Calculate "better luck next time" probability based on score
@@ -258,16 +258,16 @@ export async function generateGiftBoxReward(score: number = 0): Promise<{
     console.log(`🎁 Gift Box: BOOP reward! (${(tokenChance * 100).toFixed(1)}% chance) - Amount: ${boopAmount.toLocaleString()} - Score: ${score.toLocaleString()}`);
     return { tokenType: 'boop', amount: boopAmount };
   } else {
-    BRIDE: 14000 - 23000
-    const brideAmount = 14000 + Math.floor(Math.random() * (23000 - 14000 + 1));
-    console.log(`🎁 Gift Box: BRIDE reward! (${(tokenChance * 100).toFixed(1)}% chance) - Amount: ${brideAmount.toLocaleString()} - Score: ${score.toLocaleString()}`);
-    return { tokenType: 'bride', amount: brideAmount };
+    bribe: 14000 - 23000
+    const bribeAmount = 14000 + Math.floor(Math.random() * (23000 - 14000 + 1));
+    console.log(`🎁 Gift Box: bribe reward! (${(tokenChance * 100).toFixed(1)}% chance) - Amount: ${bribeAmount.toLocaleString()} - Score: ${score.toLocaleString()}`);
+    return { tokenType: 'bribe', amount: bribeAmount };
   }
 }
 
 export async function claimGiftBox(userAddress: string, fid?: number): Promise<{
   success: boolean;
-  tokenType: 'arb' | 'pepe' | 'boop' | 'bride' | 'none';
+  tokenType: 'arb' | 'pepe' | 'boop' | 'bribe' | 'none';
   amount: number;
   amountInWei?: string;
   signature?: string;
@@ -549,11 +549,11 @@ export async function claimGiftBox(userAddress: string, fid?: number): Promise<{
       signingError
     });
     
-    // Additional debugging for bride token
-    if (reward.tokenType === 'bride') {
-      console.log('🔍 BRIDE TOKEN DEBUG:', {
-        tokenAddress: getTokenAddress('bride'),
-        isAddressValid: getTokenAddress('bride').startsWith('0x') && getTokenAddress('bride').length === 42,
+    // Additional debugging for bribe token
+    if (reward.tokenType === 'bribe') {
+      console.log('🔍 bribe TOKEN DEBUG:', {
+        tokenAddress: getTokenAddress('bribe'),
+        isAddressValid: getTokenAddress('bribe').startsWith('0x') && getTokenAddress('bribe').length === 42,
         amountInWei: amountInWei.toString(),
         nonce: nonceStr,
         signature: signature ? 'Present' : 'Missing',
@@ -577,7 +577,7 @@ export async function claimGiftBox(userAddress: string, fid?: number): Promise<{
   };
 }
 
-function getTokenAddress(tokenType: 'arb' | 'pepe' | 'boop' | 'bride' | 'none'): string {
+function getTokenAddress(tokenType: 'arb' | 'pepe' | 'boop' | 'bribe' | 'none'): string {
   // These should match your actual token contract addresses
   switch (tokenType) {
     case 'arb':
@@ -586,8 +586,8 @@ function getTokenAddress(tokenType: 'arb' | 'pepe' | 'boop' | 'bride' | 'none'):
       return '0x25d887Ce7a35172C62FeBFD67a1856F20FaEbB00'; // PEPE token address
     case 'boop':
       return '0x13A7DeDb7169a17bE92B0E3C7C2315B46f4772B3'; // Replace with actual BOOP address
-    case 'bride':
-      return '0x014d482f8403227cf65e1512e94d95606d536b07'; // BRIDE token address
+    case 'bribe':
+      return '0x014d482f8403227cf65e1512e94d95606d536b07'; // bribe token address
     case 'none':
       throw new Error('Cannot get token address for "none" type');
     default:
@@ -605,7 +605,7 @@ export async function getUserGiftBoxStats(userAddress: string, fid?: number): Pr
   totalArb: number;
   totalPepe: number;
   totalBoop: number;
-  totalBride: number;
+  totalbribe: number;
   claimsToday: number;
   remainingClaims: number;
   totalRewardsClaimed: number;
@@ -643,13 +643,13 @@ export async function getUserGiftBoxStats(userAddress: string, fid?: number): Pr
   let totalArb = 0;
   let totalPepe = 0;
   let totalBoop = 0;
-  let totalBride = 0;
+  let totalbribe = 0;
   
   allClaims.forEach((claim: any) => {
     if (claim.tokenType === 'arb') totalArb += claim.amount;
     else if (claim.tokenType === 'pepe') totalPepe += claim.amount;
     else if (claim.tokenType === 'boop') totalBoop += claim.amount;
-    else if (claim.tokenType === 'bride') totalBride += claim.amount;
+    else if (claim.tokenType === 'bribe') totalbribe += claim.amount;
   });
   
   return {
@@ -657,7 +657,7 @@ export async function getUserGiftBoxStats(userAddress: string, fid?: number): Pr
     totalArb,
     totalPepe,
     totalBoop,
-    totalBride,
+    totalbribe,
     claimsToday,
     remainingClaims: Math.max(0, GIFT_BOXES_PER_DAY - claimsToday),
     totalRewardsClaimed: userData?.totalRewardsClaimed || 0

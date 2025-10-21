@@ -1507,7 +1507,7 @@ const FlappyBirdGame: React.FC = () => {
         }
     };
 
-    function getTokenAddressFromType(tokenType: 'arb' | 'pepe' | 'boop' | 'bride' | 'none') {
+    function getTokenAddressFromType(tokenType: 'arb' | 'pepe' | 'boop' | 'bribe' | 'none') {
         switch (tokenType) {
             case 'arb':
                 return '0x912CE59144191C1204E64559FE8253a0e49E6548';
@@ -1515,7 +1515,7 @@ const FlappyBirdGame: React.FC = () => {
                 return '0x25d887Ce7a35172C62FeBFD67a1856F20FaEbB00';
             case 'boop':
                 return '0x13A7DeDb7169a17bE92B0E3C7C2315B46f4772B3';
-            case 'bride':
+            case 'bribe':
                 return '0x014d482f8403227cf65e1512e94d95606d536b07';
             default:
                 return '0x0000000000000000000000000000000000000000';
