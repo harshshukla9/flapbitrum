@@ -58,6 +58,7 @@ Play now: ${window.location.origin}
       if (tokenAmounts?.boop && parseFloat(tokenAmounts.boop) > 0) {
         tokensText.push(`${formatTokenAmount(tokenAmounts.boop)} BOOP`)
       }
+     
 
       return `💰 Just claimed ${totalClaims} token rewards in Flapbitrum! 
 
