@@ -14,8 +14,8 @@ const Header: React.FC = () => {
             <div className="relative z-10 flex flex-col items-center text-center px-6">
                 <div className="flex items-center gap-3 mb-2">
                     <div className="relative">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center shadow-lg">
-                            <img src="/images/logo.png" alt="Flapbitrum Logo" className="w-8 h-8 object-contain" />
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-400 rounded-full to-indigo-500 rounded-full flex items-center justify-center shadow-lg">
+                            <img src="/images/logo.png" alt="Flapbitrum Logo" className="w-8 h-8  rounded-full" />
                         </div>
                         <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white animate-pulse"></div>
                     </div>

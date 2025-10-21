@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from 'react'
 import { useAccount } from 'wagmi'
-import { useLeaderboard } from '../smartcontracthooks'
-import { useCurrentActiveWeek } from '../smartcontracthooks/useWeeklyEvents'
+import { useLeaderboard } from '../../smartcontracthooks'
+import { useCurrentActiveWeek } from '../../smartcontracthooks/useWeeklyEvents'
 
 const UnifiedLeaderboard: React.FC = () => {
   const { address, isConnected } = useAccount()
@@ -76,7 +76,7 @@ const UnifiedLeaderboard: React.FC = () => {
                 onClick={() => window.location.href = '/weekly-tournament'}
                 className="bg-emerald-600/20 backdrop-blur-sm text-emerald-300 px-4 py-2 rounded-lg font-semibold hover:bg-emerald-600/30 transition-colors border border-emerald-500/30"
               >
-                🏆 Weekly Tournament Week-4
+                🏆 Weekly Tournament Week-5
               </button>
             </div>
             <div className="flex-1"></div>

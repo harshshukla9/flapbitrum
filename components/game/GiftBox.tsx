@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGift, faCoins, faTimes, faCheck } from '@fortawesome/free-solid-svg-icons';
 import { useAccount } from 'wagmi';
-import { useFrame } from "../components/farcaster-provider";
+import { useFrame } from "../farcaster-provider";
 import { authenticatedFetch } from '@/lib/auth';
 import { useContractWrite, useWaitForTransactionReceipt } from 'wagmi';
 import { CONTRACT_ADDRESSES, TOKEN_REWARD_ABI } from '@/lib/claimcontract';

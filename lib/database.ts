@@ -215,17 +215,17 @@ export async function generateGiftBoxReward(score: number = 0): Promise<{
   amount: number;
 }> {
   // Calculate "better luck next time" probability based on score
-  let betterLuckProbability = 0.5; // Default 50%
+  let betterLuckProbability = 0.2; // Default 50%
   
-  // if (score < 1000) {
+  // if (score < 50) {
   //   betterLuckProbability = 0.96; // 90% chance for scores under 4000
-  // } else if (score < 3000) {
+  // } else if (score < 300) {
   //   betterLuckProbability = 0.7; // 70% chance for scores 4000-7999
-  // } else if (score < 5000) {
+  // } else if (score < 500) {
   //   betterLuckProbability = 0.5; // 50% chance for scores 8000-11999
-  // } else if (score < 8000) {
+  // } else if (score < 800) {
   //   betterLuckProbability = 0.3; // 30% chance for scores 12000-15999
-  // } else if (score < 12000) {
+  // } else if (score < 1200) {
   //   betterLuckProbability = 0.2; // 20% chance for scores 16000-19999
   // } else {
   //   betterLuckProbability = 0.1; // 10% chance for scores 20000+
@@ -244,17 +244,17 @@ export async function generateGiftBoxReward(score: number = 0): Promise<{
   
   if (tokenRandom < tokenChance) {
     // ARB: 0.025 - 0.075 (halved from 0.05 - 0.15)
-    const arbAmount = 0.02 + (Math.random() * 0.05);
+    const arbAmount = 0.1 + (Math.random() * 0.05);
     console.log(`🎁 Gift Box: ARB reward! (${(tokenChance * 100).toFixed(1)}% chance) - Amount: ${arbAmount.toFixed(6)} - Score: ${score.toLocaleString()}`);
     return { tokenType: 'arb', amount: parseFloat(arbAmount.toFixed(6)) };
   } else if (tokenRandom < tokenChance * 2) {
     // PEPE: 2236 - 6778 (halved from 4473 - 13557)
-    const pepeAmount = 1236 + Math.floor(Math.random() * (3778 - 1236 + 1));
+    const pepeAmount = 2000 + Math.floor(Math.random() * (3778 - 1236 + 1));
     console.log(`🎁 Gift Box: PEPE reward! (${(tokenChance * 100).toFixed(1)}% chance) - Amount: ${pepeAmount.toLocaleString()} - Score: ${score.toLocaleString()}`);
     return { tokenType: 'pepe', amount: pepeAmount };
   } else if (tokenRandom < tokenChance * 3) {
     // BOOP: 711 - 1000 (halved from 1423 - 2000)
-    const boopAmount = 411 + Math.floor(Math.random() * (1000 - 411 + 1));
+    const boopAmount = 2000 + Math.floor(Math.random() * (1000 - 411 + 1));
     console.log(`🎁 Gift Box: BOOP reward! (${(tokenChance * 100).toFixed(1)}% chance) - Amount: ${boopAmount.toLocaleString()} - Score: ${score.toLocaleString()}`);
     return { tokenType: 'boop', amount: boopAmount };
   } else {
