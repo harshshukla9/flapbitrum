@@ -16,7 +16,7 @@ interface GiftBoxProps {
 }
 
 interface GiftBoxReward {
-  tokenType: 'arb' | 'pepe' | 'boop' | 'none';
+  tokenType: 'arb' | 'pepe' | 'boop' | 'bride' | 'none';
   amount: number;
   amountInWei?: string;
   signature?: string;
@@ -126,6 +126,7 @@ export default function GiftBox({ onClose, onClaimComplete }: GiftBoxProps) {
       console.log('Claiming token with:', {
         tokenAddress,
         amountInWei,
+        nonce,
         signature: reward.signature
       });
       
@@ -166,7 +167,7 @@ export default function GiftBox({ onClose, onClaimComplete }: GiftBoxProps) {
     }
   }, [claimError, claimErrorObj, isClaiming]);
 
-  const getTokenAddress = (tokenType: 'arb' | 'pepe' | 'boop' | 'none'): string => {
+  const getTokenAddress = (tokenType: 'arb' | 'pepe' | 'boop' | 'bride' | 'none'): string => {
     switch (tokenType) {
       case 'arb':
         return '0x912CE59144191C1204E64559FE8253a0e49E6548';
@@ -174,6 +175,8 @@ export default function GiftBox({ onClose, onClaimComplete }: GiftBoxProps) {
         return '0x25d887Ce7a35172C62FeBFD67a1856F20FaEbB00';
       case 'boop':
         return '0x13A7DeDb7169a17bE92B0E3C7C2315B46f4772B3'; // Replace with actual BOOP address
+      case 'bride':
+        return '0x014d482f8403227cf65e1512e94d95606d536b07'; // BRIDE token address
       case 'none':
         throw new Error('Cannot get token address for "none" type');
       default:
@@ -181,7 +184,7 @@ export default function GiftBox({ onClose, onClaimComplete }: GiftBoxProps) {
     }
   };
 
-  const getTokenInfo = (tokenType: 'arb' | 'pepe' | 'boop' | 'none') => {
+  const getTokenInfo = (tokenType: 'arb' | 'pepe' | 'boop' | 'bride' | 'none') => {
     switch (tokenType) {
       case 'arb':
         return { name: '$ARB', color: 'text-blue-400', icon: '/candy/1.png' };
@@ -189,6 +192,8 @@ export default function GiftBox({ onClose, onClaimComplete }: GiftBoxProps) {
         return { name: '$PEPE', color: 'text-green-400', icon: '/candy/2.png' };
       case 'boop':
         return { name: '$BOOP', color: 'text-purple-400', icon: '/candy/player.png' };
+      case 'bride':
+        return { name: '$BRIDE', color: 'text-pink-400', icon: '/candy/3.png' };
       case 'none':
         return { name: 'Better Luck Next Time!', color: 'text-gray-400', icon: '😔' };
       default:
@@ -373,6 +378,7 @@ export default function GiftBox({ onClose, onClaimComplete }: GiftBoxProps) {
               color: reward!.tokenType === 'arb' ? 'rgb(96, 165, 250)' :
                      reward!.tokenType === 'pepe' ? 'rgb(74, 222, 128)' :
                      reward!.tokenType === 'boop' ? 'rgb(196, 181, 253)' :
+                     reward!.tokenType === 'bride' ? 'rgb(244, 114, 182)' :
                      'rgb(156, 163, 175)'
             }}>
               {getTokenInfo(reward!.tokenType).name}

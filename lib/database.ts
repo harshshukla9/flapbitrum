@@ -14,7 +14,7 @@ export interface UsedAuthKey {
 export interface GiftBoxClaim {
     userAddress: string;
     fid?: number;
-    tokenType: 'arb' | 'pepe' | 'boop' | 'none';
+    tokenType: 'arb' | 'pepe' | 'boop' | 'bride' | 'none';
     amount: number;
     timestamp: number;
     signature?: string;
@@ -211,11 +211,11 @@ export async function canUserSeeGiftBox(userAddress: string, fid?: number): Prom
 }
 
 export async function generateGiftBoxReward(score: number = 0): Promise<{
-  tokenType: 'arb' | 'pepe' | 'boop' | 'none';
+  tokenType: 'arb' | 'pepe' | 'boop' | 'bride' | 'none';
   amount: number;
 }> {
   // Calculate "better luck next time" probability based on score
-  let betterLuckProbability = 0; // Default 50%
+  let betterLuckProbability = 0.5; // Default 50%
   
   // if (score < 1000) {
   //   betterLuckProbability = 0.96; // 90% chance for scores under 4000
@@ -238,9 +238,9 @@ export async function generateGiftBoxReward(score: number = 0): Promise<{
     return { tokenType: 'none', amount: 0 };
   }
   
-  // Remaining chance of getting a token (distributed equally among the 3 tokens)
+  // Remaining chance of getting a token (distributed equally among the 4 tokens)
   const tokenRandom = Math.random();
-  const tokenChance = (1 - betterLuckProbability) / 3; // Equal distribution among 3 tokens
+  const tokenChance = (1 - betterLuckProbability) / 4; // Equal distribution among 4 tokens
   
   if (tokenRandom < tokenChance) {
     // ARB: 0.025 - 0.075 (halved from 0.05 - 0.15)
@@ -252,17 +252,22 @@ export async function generateGiftBoxReward(score: number = 0): Promise<{
     const pepeAmount = 1236 + Math.floor(Math.random() * (3778 - 1236 + 1));
     console.log(`🎁 Gift Box: PEPE reward! (${(tokenChance * 100).toFixed(1)}% chance) - Amount: ${pepeAmount.toLocaleString()} - Score: ${score.toLocaleString()}`);
     return { tokenType: 'pepe', amount: pepeAmount };
-  } else {
+  } else if (tokenRandom < tokenChance * 3) {
     // BOOP: 711 - 1000 (halved from 1423 - 2000)
     const boopAmount = 411 + Math.floor(Math.random() * (1000 - 411 + 1));
     console.log(`🎁 Gift Box: BOOP reward! (${(tokenChance * 100).toFixed(1)}% chance) - Amount: ${boopAmount.toLocaleString()} - Score: ${score.toLocaleString()}`);
     return { tokenType: 'boop', amount: boopAmount };
+  } else {
+    BRIDE: 14000 - 23000
+    const brideAmount = 14000 + Math.floor(Math.random() * (23000 - 14000 + 1));
+    console.log(`🎁 Gift Box: BRIDE reward! (${(tokenChance * 100).toFixed(1)}% chance) - Amount: ${brideAmount.toLocaleString()} - Score: ${score.toLocaleString()}`);
+    return { tokenType: 'bride', amount: brideAmount };
   }
 }
 
 export async function claimGiftBox(userAddress: string, fid?: number): Promise<{
   success: boolean;
-  tokenType: 'arb' | 'pepe' | 'boop' | 'none';
+  tokenType: 'arb' | 'pepe' | 'boop' | 'bride' | 'none';
   amount: number;
   amountInWei?: string;
   signature?: string;
@@ -434,18 +439,30 @@ export async function claimGiftBox(userAddress: string, fid?: number): Promise<{
         candidateSig = await signForNonce(candidateNonce);
         let isValid = false;
         try {
+          const tokenAddr = getTokenAddress(reward.tokenType);
+          console.log(`🔍 Verifying signature for ${reward.tokenType}:`, {
+            tokenAddress: tokenAddr,
+            amountInWei: amountInWei.toString(),
+            nonce: candidateNonce.toString(),
+            hasSignature: !!candidateSig
+          });
+          
           isValid = await contractForVerify.verifySignature(
-            getTokenAddress(reward.tokenType),
+            tokenAddr,
             amountInWei,
             candidateNonce,
             candidateSig
           );
-        } catch (_) {
+          
+          console.log(`🔍 Signature verification result for ${reward.tokenType}:`, isValid);
+        } catch (error) {
+          console.log(`🔍 Signature verification error for ${reward.tokenType}:`, error);
           isValid = false;
         }
 
         if (!isValid) {
           // Retry with currentNonce + 1 as a fallback
+          console.log(`🔍 Retrying signature verification for ${reward.tokenType} with nonce + 1`);
           candidateNonce = BigInt(currentNonce) + BigInt(1);
           const retrySig = await signForNonce(candidateNonce);
           try {
@@ -455,11 +472,13 @@ export async function claimGiftBox(userAddress: string, fid?: number): Promise<{
               candidateNonce,
               retrySig
             );
+            console.log(`🔍 Retry signature verification result for ${reward.tokenType}:`, retryValid);
             if (retryValid) {
               nonce = candidateNonce;
               candidateSig = retrySig;
             }
-          } catch (_) {
+          } catch (error) {
+            console.log(`🔍 Retry signature verification error for ${reward.tokenType}:`, error);
             // leave as invalid; will return unsigned
           }
         }
@@ -521,6 +540,7 @@ export async function claimGiftBox(userAddress: string, fid?: number): Promise<{
     console.log('Signature data:', {
       userAddress: userAddressLower,
       tokenAddress: getTokenAddress(reward.tokenType),
+      tokenType: reward.tokenType,
       amount: reward.amount,
       amountInWei: amountInWei.toString(),
       nonce: nonceStr,
@@ -528,6 +548,19 @@ export async function claimGiftBox(userAddress: string, fid?: number): Promise<{
       signatureVerified,
       signingError
     });
+    
+    // Additional debugging for bride token
+    if (reward.tokenType === 'bride') {
+      console.log('🔍 BRIDE TOKEN DEBUG:', {
+        tokenAddress: getTokenAddress('bride'),
+        isAddressValid: getTokenAddress('bride').startsWith('0x') && getTokenAddress('bride').length === 42,
+        amountInWei: amountInWei.toString(),
+        nonce: nonceStr,
+        signature: signature ? 'Present' : 'Missing',
+        signatureVerified,
+        signingError
+      });
+    }
   }
   
   return {
@@ -544,7 +577,7 @@ export async function claimGiftBox(userAddress: string, fid?: number): Promise<{
   };
 }
 
-function getTokenAddress(tokenType: 'arb' | 'pepe' | 'boop' | 'none'): string {
+function getTokenAddress(tokenType: 'arb' | 'pepe' | 'boop' | 'bride' | 'none'): string {
   // These should match your actual token contract addresses
   switch (tokenType) {
     case 'arb':
@@ -553,6 +586,8 @@ function getTokenAddress(tokenType: 'arb' | 'pepe' | 'boop' | 'none'): string {
       return '0x25d887Ce7a35172C62FeBFD67a1856F20FaEbB00'; // PEPE token address
     case 'boop':
       return '0x13A7DeDb7169a17bE92B0E3C7C2315B46f4772B3'; // Replace with actual BOOP address
+    case 'bride':
+      return '0x014d482f8403227cf65e1512e94d95606d536b07'; // BRIDE token address
     case 'none':
       throw new Error('Cannot get token address for "none" type');
     default:
@@ -570,6 +605,7 @@ export async function getUserGiftBoxStats(userAddress: string, fid?: number): Pr
   totalArb: number;
   totalPepe: number;
   totalBoop: number;
+  totalBride: number;
   claimsToday: number;
   remainingClaims: number;
   totalRewardsClaimed: number;
@@ -607,11 +643,13 @@ export async function getUserGiftBoxStats(userAddress: string, fid?: number): Pr
   let totalArb = 0;
   let totalPepe = 0;
   let totalBoop = 0;
+  let totalBride = 0;
   
   allClaims.forEach((claim: any) => {
     if (claim.tokenType === 'arb') totalArb += claim.amount;
     else if (claim.tokenType === 'pepe') totalPepe += claim.amount;
     else if (claim.tokenType === 'boop') totalBoop += claim.amount;
+    else if (claim.tokenType === 'bride') totalBride += claim.amount;
   });
   
   return {
@@ -619,6 +657,7 @@ export async function getUserGiftBoxStats(userAddress: string, fid?: number): Pr
     totalArb,
     totalPepe,
     totalBoop,
+    totalBride,
     claimsToday,
     remainingClaims: Math.max(0, GIFT_BOXES_PER_DAY - claimsToday),
     totalRewardsClaimed: userData?.totalRewardsClaimed || 0
