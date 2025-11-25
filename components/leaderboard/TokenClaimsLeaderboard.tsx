@@ -239,7 +239,7 @@ export default function DualLeaderboard() {
               }`}
             >
               <div className="font-bold">🏆 Scores</div>
-              <div className="text-xs opacity-80">Monthly</div>
+              <div className="text-xs opacity-80">Weekly</div>
             </button>
             <button
               onClick={() => setActiveTab('tokenClaims')}

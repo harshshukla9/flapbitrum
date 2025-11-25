@@ -4,10 +4,10 @@
 
 A **comprehensive dual leaderboard system** with two distinct views:
 
-### **1. 🏆 Score Leaderboard** (Monthly Rewards)
-- **Purpose**: Track game scores for monthly reward distribution
+### **1. 🏆 Score Leaderboard** (Weekly Rewards)
+- **Purpose**: Track game scores for weekly reward distribution
 - **Data Source**: Direct blockchain calls to your leaderboard contract
-- **Rewards**: Monthly distribution based on top scores
+- **Rewards**: Weekly distribution based on top scores
 - **Features**: 
   - Shows game scores with profile pictures
   - Reward eligibility indicators (top 15, top 30)
@@ -26,7 +26,7 @@ A **comprehensive dual leaderboard system** with two distinct views:
 
 ### **User Experience:**
 1. **Two Tab Buttons** at the top:
-   - 🏆 **Score Leaderboard** - "Monthly Rewards"
+   - 🏆 **Score Leaderboard** - "Weekly Rewards"
    - 💰 **Token Claims** - "Daily Rewards"
 
 2. **"My Position" Card** - Shows user's ranking in current tab
@@ -56,9 +56,9 @@ User Claims Token → TokenRewarded Event → Sync API → getUserProfile() → 
 
 ### **Score Leaderboard Specific:**
 - ✅ **Game Scores**: Shows actual game performance
-- ✅ **Reward Indicators**: Top 15, top 30 eligibility
+- ✅ **Reward Indicators**: Highlights top 30 ARB payout zone
 - ✅ **Direct Blockchain**: No database dependency
-- ✅ **Monthly Focus**: For monthly reward distribution
+- ✅ **Weekly Focus**: For weekly reward distribution
 
 ### **Token Claims Leaderboard Specific:**
 - ✅ **Token Amounts**: ARB, PEPE, BOOP with formatting
@@ -68,9 +68,9 @@ User Claims Token → TokenRewarded Event → Sync API → getUserProfile() → 
 
 ## 🎮 **User Engagement Strategy**
 
-### **Monthly Rewards (Score-based):**
+### **Weekly Rewards (Score-based):**
 - Users play to improve their score
-- Top 30 players get monthly rewards
+- Top 30 players get weekly rewards
 - Encourages consistent gameplay
 
 ### **Daily Rewards (Token Claims):**
@@ -108,7 +108,7 @@ http://localhost:3000/dual-leaderboard
 ## 🎯 **Benefits**
 
 1. **Dual Engagement**: Users can compete on both scores AND token claims
-2. **Monthly + Daily**: Different reward cycles for sustained engagement
+2. **Weekly + Daily**: Different reward cycles for sustained engagement
 3. **Clear Separation**: Easy to understand which leaderboard is which
 4. **Profile Integration**: Farcaster profiles make it personal
 5. **Mobile Optimized**: Works great on mobile devices
@@ -122,4 +122,4 @@ http://localhost:3000/dual-leaderboard
 
 ---
 
-**🎉 You now have a complete dual leaderboard system that covers both monthly score-based rewards and daily token claim rewards!**
+**🎉 You now have a complete dual leaderboard system that covers both weekly score-based rewards and daily token claim rewards!**

@@ -7,6 +7,13 @@ import { arbitrum } from 'viem/chains'
 import contractConfig from '@/lib/contract'
 import Link from 'next/link'
 import CastShare from '../sharing/CastShare'
+import {
+  formatRewardAmount,
+  getScoreRewardForRank,
+  SCORE_REWARD_TOKEN,
+  SCORE_REWARD_TOP_LIMIT,
+  SCORE_REWARD_TOTAL,
+} from '@/lib/scoreRewards'
 
 interface ScoreLeaderboardEntry {
   user: string
@@ -55,6 +62,18 @@ export default function DualLeaderboard() {
 
   const contractAddress = contractConfig.contractAddress as `0x${string}`
   const abi = contractConfig.abi
+
+  const myScoreRank = useMemo(() => {
+    if (!address || scoreEntries.length === 0) return null
+    const index = scoreEntries.findIndex(
+      (entry: ScoreLeaderboardEntry) => entry.user.toLowerCase() === address.toLowerCase()
+    )
+    return index >= 0 ? index + 1 : null
+  }, [address, scoreEntries])
+
+  const myScoreReward = myScoreRank ? getScoreRewardForRank(myScoreRank) : null
+  const topRankReward = getScoreRewardForRank(1)
+  const cutoffReward = getScoreRewardForRank(SCORE_REWARD_TOP_LIMIT)
 
   // Load score leaderboard
   const loadScoreLeaderboard = useMemo(
@@ -198,7 +217,7 @@ export default function DualLeaderboard() {
   const handleShareScore = () => {
     if (!myScorePosition) return
     
-    const rank = scoreEntries.findIndex(entry => entry.user.toLowerCase() === address?.toLowerCase()) + 1
+    const rank = myScoreRank ?? 0
     
     setShareData({
       type: 'score',
@@ -269,7 +288,7 @@ export default function DualLeaderboard() {
               }`}
             >
               <div className="font-bold">🏆 Scores</div>
-              <div className="text-xs opacity-80">Monthly</div>
+              <div className="text-xs opacity-80">Weekly</div>
             </button>
             <button
               onClick={() => setActiveTab('tokenClaims')}
@@ -311,6 +330,32 @@ export default function DualLeaderboard() {
             </button>
           </div>
         </div>
+
+        {activeTab === 'score' && (
+          <div className="mb-4 bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-pink-500/20 border border-yellow-400/30 rounded-2xl p-4 backdrop-blur-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <p className="text-xs text-yellow-200 uppercase tracking-wide font-semibold mb-1">Weekly reward pool</p>
+                <h2 className="text-lg font-bold text-white">
+                  {SCORE_REWARD_TOTAL} {SCORE_REWARD_TOKEN} split across top {SCORE_REWARD_TOP_LIMIT}
+                </h2>
+              </div>
+              <div className="px-3 py-1 rounded-full bg-white/10 text-xs text-yellow-100 font-semibold">
+                Live
+              </div>
+            </div>
+            <p className="text-sm text-yellow-100">
+              🥇 Rank #1 is set to earn{' '}
+              <span className="font-semibold">
+                {formatRewardAmount(topRankReward.amount, 2)} {SCORE_REWARD_TOKEN}
+              </span>{' '}
+              while rank #{SCORE_REWARD_TOP_LIMIT} still receives{' '}
+              <span className="font-semibold">
+                {formatRewardAmount(cutoffReward.amount, 2)} {SCORE_REWARD_TOKEN}
+              </span>. Climb into the top {SCORE_REWARD_TOP_LIMIT} to secure your share.
+            </p>
+          </div>
+        )}
 
         {/* My Position Card */}
         {address && (
@@ -354,6 +399,18 @@ export default function DualLeaderboard() {
                       <div className="text-gray-300 text-xs">score</div>
                     </div>
                   </div>
+                  {myScoreRank && myScoreRank <= SCORE_REWARD_TOP_LIMIT ? (
+                    <div className="mb-3 flex items-center justify-between bg-yellow-500/20 border border-yellow-400/40 rounded-lg px-3 py-2 text-xs sm:text-sm font-semibold text-yellow-100">
+                      <span>Potential Reward</span>
+                      <span>
+                        {formatRewardAmount(myScoreReward?.amount ?? 0, 2)} {SCORE_REWARD_TOKEN}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="mb-3 text-xs text-gray-200">
+                      Reach top {SCORE_REWARD_TOP_LIMIT} to unlock ARB rewards.
+                    </div>
+                  )}
                   <button
                     onClick={handleShareScore}
                     className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-3 py-2 rounded-lg font-semibold transition-all flex items-center justify-center text-sm"
@@ -471,7 +528,8 @@ export default function DualLeaderboard() {
                   .map((entry, index) => {
                     const rank = index + 1
                     const scoreNumber = Number(entry.score)
-                    const isInRewardPool = rank <= 30
+                    const rewardInfo = getScoreRewardForRank(rank)
+                    const isInRewardPool = rewardInfo.amount > 0
 
                     return (
                       <div
@@ -519,8 +577,15 @@ export default function DualLeaderboard() {
                             </div>
                           </div>
                         </div>
-                        <div className={`text-xl font-bold flex-shrink-0 ml-2 ${getScoreColor(scoreNumber)}`}>
-                          {scoreNumber}
+                        <div className="flex flex-col items-end flex-shrink-0 ml-2">
+                          <div className={`text-xl font-bold ${getScoreColor(scoreNumber)}`}>
+                            {scoreNumber}
+                          </div>
+                          {isInRewardPool && (
+                            <div className="mt-1 text-[11px] sm:text-xs text-yellow-200 font-semibold bg-yellow-500/10 border border-yellow-400/30 rounded-full px-2 py-0.5">
+                              {formatRewardAmount(rewardInfo.amount, 2)} {SCORE_REWARD_TOKEN}
+                            </div>
+                          )}
                         </div>
                       </div>
                     )

@@ -11,6 +11,7 @@ import RewardInfoPopup from './RewardInfoPopup';
 import GiftBox from './GiftBox';
 import TokenBalanceDisplay from '../ui/TokenBalanceDisplay';
 import { APP_URL } from '../../lib/constants';
+import { SCORE_REWARD_TOP_LIMIT, SCORE_REWARD_TOTAL, SCORE_REWARD_TOKEN } from '@/lib/scoreRewards';
 import { authenticatedFetch } from '../../lib/auth';
 import { formatEther } from 'viem';
 
@@ -1538,7 +1539,7 @@ const FlappyBirdGame: React.FC = () => {
                            `Level: ${level}\n` +
                            `Difficulty: ${Math.floor(difficulty * 10) / 10}x\n\n` +
                            `Can you beat my score? 🚀\n` +
-                           `💰 Top 15 players will share the reward pool! 💰\n\n` +
+                           `💰 ${SCORE_REWARD_TOTAL} ${SCORE_REWARD_TOKEN} shared across the top ${SCORE_REWARD_TOP_LIMIT}! 💰\n\n` +
                            `#Flapbitrum #Arbitrum #Gaming`
                            
 
@@ -1951,7 +1952,7 @@ const FlappyBirdGame: React.FC = () => {
                         
                         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
                             <p className="text-sm text-blue-100">
-                                💰 Top 15 players share the reward pool • 🔗 Connect wallet to save scores • 📢 Share achievements on Farcaster
+                                💰 {SCORE_REWARD_TOTAL} {SCORE_REWARD_TOKEN} split across the top {SCORE_REWARD_TOP_LIMIT} • 🔗 Connect wallet to save scores • 📢 Share achievements on Farcaster
                             </p>
                         </div>
                         

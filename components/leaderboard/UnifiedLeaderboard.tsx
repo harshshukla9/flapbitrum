@@ -4,6 +4,14 @@ import React, { useEffect, useState } from 'react'
 import { useAccount } from 'wagmi'
 import { useLeaderboard } from '../../smartcontracthooks'
 import { useCurrentActiveWeek } from '../../smartcontracthooks/useWeeklyEvents'
+import {
+  formatRewardAmount,
+  getScoreRewardForRank,
+  SCORE_REWARD_TABLE,
+  SCORE_REWARD_TOKEN,
+  SCORE_REWARD_TOP_LIMIT,
+  SCORE_REWARD_TOTAL,
+} from '@/lib/scoreRewards'
 
 const UnifiedLeaderboard: React.FC = () => {
   const { address, isConnected } = useAccount()
@@ -16,6 +24,15 @@ const UnifiedLeaderboard: React.FC = () => {
   const currentWeek = currentWeekData?.currentWeek
 
   const { leaderboard, isLoading, error, refetch, totalUsers } = useLeaderboard(limit)
+  const topRankReward = getScoreRewardForRank(1)
+  const cutoffReward = getScoreRewardForRank(SCORE_REWARD_TOP_LIMIT)
+  const myScoreRank = address && leaderboard?.length
+    ? (() => {
+        const idx = leaderboard.findIndex((entry: any) => entry.user.toLowerCase() === address.toLowerCase())
+        return idx >= 0 ? idx + 1 : null
+      })()
+    : null
+  const myPotentialReward = myScoreRank ? getScoreRewardForRank(myScoreRank) : null
 
   useEffect(() => {
     setIsClient(true)
@@ -87,10 +104,12 @@ const UnifiedLeaderboard: React.FC = () => {
         </div>
 
         <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 backdrop-blur-lg rounded-2xl p-6 mb-8 border border-yellow-500/30">
-          <div className="text-center">
-            <div className="flex items-center justify-center space-x-2 mb-3">
+          <div className="text-center space-y-3">
+            <div className="flex items-center justify-center space-x-2">
               <span className="text-3xl">💰</span>
-              <h2 className="text-3xl md:text-4xl font-bold text-yellow-300">$50 USDC Reward Pool</h2>
+              <h2 className="text-3xl md:text-4xl font-bold text-yellow-300">
+                {SCORE_REWARD_TOTAL} {SCORE_REWARD_TOKEN} Reward Pool
+              </h2>
               <span className="text-3xl">💰</span>
               <button
                 onClick={() => setShowPrizeInfo(!showPrizeInfo)}
@@ -100,7 +119,11 @@ const UnifiedLeaderboard: React.FC = () => {
                 <span className="text-white text-xs font-bold">i</span>
               </button>
             </div>
-            <p className="text-lg text-yellow-200 mb-6">Top 15 players will share the reward pool!</p>
+            <p className="text-lg text-yellow-200">
+              Top {SCORE_REWARD_TOP_LIMIT} players share the weekly ARB drop. 🥇 #{' '}
+              {formatRewardAmount(topRankReward.amount, 2)} {SCORE_REWARD_TOKEN}; #{SCORE_REWARD_TOP_LIMIT} still banks{' '}
+              {formatRewardAmount(cutoffReward.amount, 2)} {SCORE_REWARD_TOKEN}.
+            </p>
 
             {currentWeek && (
               <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50">
@@ -125,12 +148,12 @@ const UnifiedLeaderboard: React.FC = () => {
         </div>
 
         {showPrizeInfo && (
-          <div 
+          <div
             className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
             onClick={() => setShowPrizeInfo(false)}
           >
-            <div 
-              className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 backdrop-blur-lg rounded-2xl p-6 max-w-lg w-full border border-yellow-500/30 relative max-h-[90vh] overflow-y-auto"
+            <div
+              className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 backdrop-blur-lg rounded-2xl p-6 max-w-2xl w-full border border-yellow-500/30 relative max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <button
@@ -141,39 +164,53 @@ const UnifiedLeaderboard: React.FC = () => {
                 <span className="text-white text-xl font-bold">×</span>
               </button>
 
-              <div className="text-center">
-                <div className="flex items-center justify-center space-x-2 mb-4">
+              <div className="text-center space-y-5">
+                <div className="flex items-center justify-center space-x-2">
                   <span className="text-3xl">🏆</span>
-                  <h3 className="text-2xl font-bold text-yellow-300">Prize Distribution</h3>
+                  <h3 className="text-2xl font-bold text-yellow-300">ARB Prize Distribution</h3>
                   <span className="text-3xl">🏆</span>
                 </div>
-                <div className="space-y-4 text-left">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
                   <div className="bg-white/10 rounded-xl p-4 border border-white/20">
                     <h4 className="font-semibold text-yellow-200 mb-2">💰 Total Prize Pool</h4>
-                    <p className="text-white text-lg font-bold">$50 USDC</p>
+                    <p className="text-white text-lg font-bold">
+                      {SCORE_REWARD_TOTAL} {SCORE_REWARD_TOKEN}
+                    </p>
                   </div>
                   <div className="bg-white/10 rounded-xl p-4 border border-white/20">
                     <h4 className="font-semibold text-yellow-200 mb-2">👥 Winners</h4>
-                    <p className="text-white">Top 15 players will share the reward pool</p>
+                    <p className="text-white">Top {SCORE_REWARD_TOP_LIMIT} players share the weekly pot</p>
                   </div>
-                  <div className="bg-white/10 rounded-xl p-4 border border-white/20">
-                    <h4 className="font-semibold text-yellow-200 mb-2">📊 Distribution</h4>
-                    <div className="space-y-2 text-sm text-white">
-                      <div className="flex justify-between"><span>🥇 1st Place:</span><span className="font-bold">$10 USDC</span></div>
-                      <div className="flex justify-between"><span>🥈 2nd Place:</span><span className="font-bold">$6 USDC</span></div>
-                      <div className="flex justify-between"><span>🥉 3rd Place:</span><span className="font-bold">$4 USDC</span></div>
-                      <div className="flex justify-between"><span>4th-10th Place:</span><span className="font-bold">$2.5 USDC each</span></div>
-                      <div className="flex justify-between"><span>11th-15th Place:</span><span className="font-bold">$2 USDC each</span></div>
-                    </div>
+                </div>
+                <div className="bg-white/10 rounded-xl p-4 border border-white/20 text-left">
+                  <h4 className="font-semibold text-yellow-200 mb-2">📊 Distribution Map</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {SCORE_REWARD_TABLE.map(({ rank, amount, percentage }) => (
+                      <div key={rank} className="bg-white/5 rounded-lg p-3 border border-white/10">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-white font-semibold">#{rank}</span>
+                          <span className="text-lg">
+                            {rank <= 3 ? getRankIcon(rank) : rank <= 10 ? '🏅' : '🎯'}
+                          </span>
+                        </div>
+                        <div className="text-yellow-200 font-bold text-lg">
+                          {formatRewardAmount(amount, 3)} {SCORE_REWARD_TOKEN}
+                        </div>
+                        <div className="text-xs text-gray-200">{percentage.toFixed(2)}% of pool</div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="bg-white/10 rounded-xl p-4 border border-white/20">
-                    <h4 className="font-semibold text-yellow-200 mb-2">⏰ Tournament Duration</h4>
-                    <p className="text-white">Each tournament runs for 1 week</p>
-                  </div>
+                </div>
+                <div className="bg-white/10 rounded-xl p-4 border border-white/20 text-left">
+                  <h4 className="font-semibold text-yellow-200 mb-2">⏰ Timeline</h4>
+                  <p className="text-white text-sm">
+                    Each leaderboard season runs weekly. Payouts are made in {SCORE_REWARD_TOKEN} on Arbitrum once the
+                    cycle closes.
+                  </p>
                 </div>
                 <button
                   onClick={() => setShowPrizeInfo(false)}
-                  className="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                  className="mt-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
                 >
                   Got it! 👍
                 </button>
@@ -216,68 +253,86 @@ const UnifiedLeaderboard: React.FC = () => {
               {leaderboard
                 .filter((entry: any) => Number(entry.score) !== 0)
                 .map((entry: any, index: number) => {
-                const rank = index + 1
-                const isInRewardPool = rank <= 30
-                const isTop15 = rank <= 15
-                const score = Number(entry.score)
-                return (
-                  <div
-                    key={`${entry.user}-${index}`}
-                    className={`flex items-center justify-between p-4 rounded-xl transition-all hover:bg-white/5 ${
-                      address?.toLowerCase() === entry.user.toLowerCase()
-                        ? 'bg-blue-600/20 border border-blue-500/50'
-                        : isInRewardPool
-                          ? 'bg-yellow-500/10 border border-yellow-500/20'
-                          : 'bg-white/5'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-3">
-                        {entry.pfp ? (
-                          <div className="relative w-12 h-12">
-                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20">
-                              <img src={entry.pfp} alt="Profile" className="w-full h-full object-cover"
-                                onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                  const rank = index + 1
+                  const score = Number(entry.score)
+                  const rewardInfo = getScoreRewardForRank(rank)
+                  const isInRewardPool = rewardInfo.amount > 0
+
+                  return (
+                    <div
+                      key={`${entry.user}-${index}`}
+                      className={`flex items-center justify-between p-4 rounded-xl transition-all hover:bg-white/5 ${
+                        address?.toLowerCase() === entry.user.toLowerCase()
+                          ? 'bg-blue-600/20 border border-blue-500/50'
+                          : isInRewardPool
+                            ? 'bg-yellow-500/10 border border-yellow-500/20'
+                            : 'bg-white/5'
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
+                          {entry.pfp ? (
+                            <div className="relative w-12 h-12">
+                              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20">
+                                <img
+                                  src={entry.pfp}
+                                  alt="Profile"
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none'
+                                  }}
+                                />
+                              </div>
+                              <div className="absolute -top-1 -right-1 bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-white shadow-lg">
+                                {rank <= 3 ? getRankIcon(rank) : rank}
+                              </div>
                             </div>
-                            <div className="absolute -top-1 -right-1 bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-white shadow-lg">
-                              {rank <= 3 ? getRankIcon(rank) : rank}
+                          ) : (
+                            <div className="relative w-12 h-12">
+                              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center border-2 border-white/20">
+                                <span className="text-white text-lg font-bold">
+                                  {(entry.username || formatAddress(entry.user)).charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="absolute -top-1 -right-1 bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-white shadow-lg">
+                                {rank <= 3 ? getRankIcon(rank) : rank}
+                              </div>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="relative w-12 h-12">
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center border-2 border-white/20">
-                              <span className="text-white text-lg font-bold">{(entry.username || formatAddress(entry.user)).charAt(0).toUpperCase()}</span>
+                          )}
+                          <div>
+                            <div className="font-semibold text-white">
+                              {entry.username || formatAddress(entry.user)}
+                              {address?.toLowerCase() === entry.user.toLowerCase() && (
+                                <span className="ml-2 text-blue-400 text-sm">(You)</span>
+                              )}
+                              {isInRewardPool && <span className="ml-2 text-yellow-400 text-sm">💰</span>}
                             </div>
-                            <div className="absolute -top-1 -right-1 bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-white shadow-lg">
-                              {rank <= 3 ? getRankIcon(rank) : rank}
+                            <div className="text-sm text-gray-400 flex flex-wrap gap-2 items-center">
+                              <span>Rank #{rank}</span>
+                              {isInRewardPool ? (
+                                <span className="text-yellow-300">
+                                  Potential: {formatRewardAmount(rewardInfo.amount, 2)} {SCORE_REWARD_TOKEN}
+                                </span>
+                              ) : (
+                                <span className="text-orange-300">
+                                  Push into the top {SCORE_REWARD_TOP_LIMIT} to earn ARB
+                                </span>
+                              )}
                             </div>
-                          </div>
-                        )}
-                        <div>
-                          <div className="font-semibold text-white">
-                            {entry.username || formatAddress(entry.user)}
-                            {address?.toLowerCase() === entry.user.toLowerCase() && (
-                              <span className="ml-2 text-blue-400 text-sm">(You)</span>
-                            )}
-                            {isInRewardPool && (
-                              <span className="ml-2 text-yellow-400 text-sm">💰</span>
-                            )}
-                          </div>
-                          <div className="text-sm text-gray-400">
-                            Rank #{rank}
-                            {isTop15 ? (
-                              <span className="ml-2 text-yellow-300">Reward Eligible</span>
-                            ) : (
-                              <span className="ml-2 text-orange-300">Keep playing to climb!</span>
-                            )}
                           </div>
                         </div>
                       </div>
+                      <div className="flex flex-col items-end">
+                        <div className={`text-2xl font-bold ${getScoreColor(score)}`}>{score}</div>
+                        {isInRewardPool && (
+                          <div className="text-[11px] text-yellow-200 bg-yellow-500/10 border border-yellow-400/30 rounded-full px-2 py-0.5 mt-1 font-semibold">
+                            {formatRewardAmount(rewardInfo.amount, 2)} {SCORE_REWARD_TOKEN}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className={`text-2xl font-bold ${getScoreColor(score)}`}>{score}</div>
-                  </div>
-                )
-              })}
+                  )
+                })}
             </div>
           )}
         </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { SCORE_REWARD_TOKEN, SCORE_REWARD_TOP_LIMIT, SCORE_REWARD_TOTAL } from '@/lib/scoreRewards';
 
 interface RewardInfoPopupProps {
   isOpen: boolean;
@@ -51,7 +52,7 @@ const RewardInfoPopup: React.FC<RewardInfoPopupProps> = ({ isOpen, onClose, loca
                 Dual Earning System!
               </h3>
               <p className="text-sm text-gray-200 leading-relaxed">
-                Win rewards through <span className="text-yellow-300 font-bold">Monthly Leaderboard</span> AND <span className="text-green-300 font-bold">Daily Token Claims</span>! 
+                Win rewards through <span className="text-yellow-300 font-bold">Weekly Leaderboard</span> AND <span className="text-green-300 font-bold">Daily Token Claims</span>! 
                 The more you play, the more you earn!
               </p>
             </div>
@@ -64,19 +65,19 @@ const RewardInfoPopup: React.FC<RewardInfoPopupProps> = ({ isOpen, onClose, loca
               Two Ways to Earn
             </h4>
 
-            {/* Monthly Leaderboard */}
+            {/* Weekly Leaderboard */}
             <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl p-4 border border-purple-400/30 mb-3">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
                   <span className="text-xl">🏆</span>
                 </div>
                 <div>
-                  <div className="font-bold text-white mb-1">Monthly Leaderboard</div>
+                  <div className="font-bold text-white mb-1">Weekly Leaderboard</div>
                   <p className="text-xs text-gray-300 leading-relaxed mb-2">
-                    Compete for top positions! Top 15 winners get reward points distributed at month end.
+                    Compete for top positions! {SCORE_REWARD_TOTAL} {SCORE_REWARD_TOKEN} is split among the top {SCORE_REWARD_TOP_LIMIT} every season.
                   </p>
                   <div className="bg-purple-600/30 rounded-lg px-2 py-1 inline-block">
-                    <span className="text-xs text-purple-200 font-semibold">🎯 Top 15 Winners</span>
+                    <span className="text-xs text-purple-200 font-semibold">🎯 Top {SCORE_REWARD_TOP_LIMIT} Share</span>
                   </div>
                 </div>
               </div>
@@ -212,7 +213,7 @@ const RewardInfoPopup: React.FC<RewardInfoPopupProps> = ({ isOpen, onClose, loca
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-purple-400 rounded-full"></span>
-                <span className="text-xs">Monthly winners announced 1st of month</span>
+                <span className="text-xs">Weekly winners announced each reset</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-purple-400 rounded-full"></span>
